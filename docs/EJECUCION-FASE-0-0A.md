@@ -155,14 +155,31 @@ Ver `docs/ARQUITECTURA-HARBOR.md`. ADR-0002/0003/0004 aceptados; 0005/0006 a dis
 
 ---
 
-## Paso manual pendiente (requiere base Neon nueva vacía)
+## Migración baseline — hecha (2026-08-29)
 
+`prisma/migrations/20260829134307_harbor_baseline/` — 2561 líneas, 77 tablas +
+50 enums. Generada y aplicada contra un Postgres local efímero; el SQL es
+schema-derivado y aplica igual en Neon.
+
+### Verificación de "versión local" (2026-08-29)
+- `prisma migrate dev` → baseline creada y aplicada (77 tablas). ✅
+- `npm run db:seed` → 2 agencias (MIA/MGA), 7 usuarios (master + 6 demo por rol),
+  10 `BranchRoleConfig`, 1 `Customer` + 1 `CustomerUser`. ✅
+- `cargo-api` dev en `:4000` + `cargo-frontend` dev en `:3000`, ambos arriba. ✅
+- `POST /api/auth/login` valida contra el hash argon2 en DB y rutea por rol:
+  `master` → `/app/change-password`, `admin-agencia` → `/app/branch`. ✅
+- Roles courier visibles en datos: `WAREHOUSE_ORIGIN`@MIA, `WAREHOUSE_DESTINATION`@MGA,
+  `COUNTER`/`CASHIER`/`BRANCH_ADMIN`@MGA.
+
+### Para la base real (Neon)
 ```bash
-# cargo-api/.env → DATABASE_URL + DIRECT_URL de la base CARGO (NUNCA la de ferretería)
+# cargo-api/.env → DATABASE_URL + DIRECT_URL de la base Neon (fresca)
 cd cargo-api
-npx prisma migrate dev --name cargo_baseline
-npm run db:seed   # agencias MIA/MGA + usuarios demo por rol + cliente demo
+npx prisma migrate deploy   # aplica el baseline ya versionado
+npm run db:seed
 ```
+Credenciales demo: `master / Dev@Seed#2024!LocalOnly` · resto `Cargo1234!` ·
+cliente portal `cliente@example.com / Cargo1234!`.
 
 ## Lo que sigue
 
