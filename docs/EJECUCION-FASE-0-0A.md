@@ -268,13 +268,19 @@ primera decía que había 2 catálogos RBAC; hay 3 y el limpio estaba muerto).
   `custody.handoff/receive`. Guard `payment-collection-guard.ts`:
   `decideCollect()` puro — sin capacidad → 403, con capacidad y sin gaveta →
   **409** (`CASH_SESSION_REQUIRED`). Aún sin ruta que cobre; contrato listo.
+- **R.4 (`3e6d351`)** — `confirmCustodyReceipt`, cierra el hueco #1 de
+  `PENDIENTES.md`. **Sin modelo nuevo** (respeta la decisión de
+  `cash-monitor.ts`: el saldo de la cuenta `CUSTODY` es el estado). Migración
+  `20260829190818_custody_receipt_confirmed` (+ `TreasuryEntryType.HANDOVER_CONFIRMED`).
+  `treasury/custody.ts` puro (`custodyReceiptOutcome`, `netUnconfirmedPersonHandoff`);
+  `service.ts::confirmCustodyReceipt` espeja `confirmBankDeposit` —
+  `holderUserId != confirmedByUserId`, `DISPUTED` → `ApprovalRequest` sin
+  transferir, `MATCH` → transferencia interna portador→receptor.
+  `requestCloseCashSession`: neto de entregas en persona sin confirmar > 0 →
+  **409** `UNCONFIRMED_CUSTODY_HANDOFF` (los depósitos a banco no cuentan).
 
 ### PASO R — lo que falta
 
-- **R.4** — `confirmCustodyReceipt` espejando `confirmBankDeposit` (sin modelo
-  nuevo — el saldo de la cuenta `CUSTODY` ya dice "en tránsito"). Regla: usuario
-  con saldo `CUSTODY` ≠ 0 a su nombre no cierra jornada. `DISPUTED` →
-  `ApprovalRequest`. `custody.receive` no se confirma a sí mismo.
 - **R.5** — cascarón de rutas de logística (`/app/warehouse/*`, `/app/shipments`,
   `/app/customs`, `/app/branch/arrivals`, `/app/delivery`, `/app/customers`,
   `/app/tracking`) + `resolveRoleHome` completo (cada rol a su home, ninguno al
