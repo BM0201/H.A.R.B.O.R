@@ -1,5 +1,7 @@
-// Frontend-local copy of policies (decoupled from @prisma/client).
-// Must stay in sync with backend src/modules/rbac/policies.ts
+// Copia frontend del catálogo RBAC (desacoplada de @prisma/client).
+// DEBE ser idéntica al backend cargo-api/src/modules/rbac/policies.ts —
+// lo verifica tests/unit-ts/rbac-parity.test.ts (corre en CI). La UI oculta,
+// el servidor autoriza: este archivo existe solo para no mostrar botones muertos.
 import type { RoleCode, SessionPayload } from "@/types/auth";
 
 export const CAPABILITIES = {
@@ -137,13 +139,41 @@ export const CAPABILITIES = {
   PRINT_LOG_VIEW: "print.log.view",
   SALES_HISTORY_VIEW: "sales.history.view",
   MASTER_HISTORY_VIEW: "master.history.view",
+
+  // ── Dominio courier (CARGO Fase 0.A) ────────────────────────────────
+  // Espejo de cargo-api/src/modules/rbac/policies.ts (PASO R.1). El test de
+  // paridad (tests/unit-ts/rbac-parity.test.ts) falla si difieren.
+  CUSTOMER_CREATE: "customer.create",
+  CUSTOMER_VIEW: "customer.view",
+  CUSTOMER_EDIT: "customer.edit",
+  CUSTOMER_TIER_OVERRIDE: "customer.tier.override",
+  PACKAGE_RECEIVE: "package.receive",
+  PACKAGE_MEASURE: "package.measure",
+  PACKAGE_MEASURE_CORRECT: "package.measure.correct",
+  PACKAGE_CONSOLIDATE: "package.consolidate",
+  PACKAGE_RELEASE: "package.release",
+  PACKAGE_DELIVER: "package.deliver",
+  PACKAGE_STATUS_OVERRIDE: "package.status.override",
+  PREALERT_CREATE: "prealert.create",
+  PREALERT_MATCH: "prealert.match",
+  SHIPMENT_CREATE: "shipment.create",
+  SHIPMENT_COST_EDIT: "shipment.cost.edit",
+  SHIPMENT_ALLOCATE: "shipment.allocate",
+  RATE_VIEW: "rate.view",
+  RATE_EDIT: "rate.edit",
+  CUSTOMS_DECLARE: "customs.declare",
+  CUSTOMS_CLEAR: "customs.clear",
+  CLAIM_OPEN: "claim.open",
+  CLAIM_RESOLVE: "claim.resolve",
+  PROMO_CREATE: "promo.create",
+  PROMO_APPROVE: "promo.approve",
 } as const;
 
 export type Capability = (typeof CAPABILITIES)[keyof typeof CAPABILITIES];
 
 const ALL_CAPABILITIES = Object.values(CAPABILITIES);
 
-const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
+export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
   SYSTEM_ADMIN: ALL_CAPABILITIES.filter(c => !c.startsWith("production.")),
   OWNER: ALL_CAPABILITIES.filter(c => c !== CAPABILITIES.SYSTEM_ADMIN_ACCESS && c !== CAPABILITIES.SYSTEM_ADMIN_ROLE_CONFIG && c !== CAPABILITIES.SYSTEM_ADMIN_SETTINGS && !c.startsWith("production.")),
   MASTER: ALL_CAPABILITIES.filter(c => c !== CAPABILITIES.SYSTEM_ADMIN_ACCESS && c !== CAPABILITIES.SYSTEM_ADMIN_ROLE_CONFIG && c !== CAPABILITIES.SYSTEM_ADMIN_SETTINGS),
@@ -252,6 +282,12 @@ const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     CAPABILITIES.SALES_DRAFT_MANAGE,
     CAPABILITIES.SALES_SUBMIT_PAYMENT,
     CAPABILITIES.APPROVAL_REQUEST_CREATE,
+    // ── Courier (PASO R.1) — espejo del backend ──
+    CAPABILITIES.CUSTOMER_CREATE,
+    CAPABILITIES.CUSTOMER_VIEW,
+    CAPABILITIES.CUSTOMER_EDIT,
+    CAPABILITIES.PREALERT_CREATE,
+    CAPABILITIES.CLAIM_OPEN,
     // ── Documentos e Impresión (FASE 3) ──
     CAPABILITIES.DOCUMENT_PRINT,
     CAPABILITIES.DOCUMENT_SKIP_PRINT,
@@ -296,7 +332,14 @@ const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     CAPABILITIES.OPERATIONS_VIEW,
     CAPABILITIES.APPROVAL_REQUEST_CREATE,
     CAPABILITIES.DOCUMENT_PRINT,
+    // ── Courier (PASO R.1) — espejo del backend ──
+    CAPABILITIES.CUSTOMER_VIEW,
+    CAPABILITIES.PACKAGE_RECEIVE,
+    CAPABILITIES.PACKAGE_MEASURE,
+    CAPABILITIES.PREALERT_MATCH,
+    CAPABILITIES.PACKAGE_CONSOLIDATE,
   ],
+  // Bodega DESTINO: NUNCA escribe peso/medidas (frontera antifraude, sin PACKAGE_MEASURE*).
   WAREHOUSE_DESTINATION: [
     CAPABILITIES.WAREHOUSE_VIEW,
     CAPABILITIES.BRANCH_DASHBOARD_VIEW,
@@ -305,6 +348,11 @@ const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     CAPABILITIES.OPERATIONS_VIEW,
     CAPABILITIES.APPROVAL_REQUEST_CREATE,
     CAPABILITIES.DOCUMENT_PRINT,
+    // ── Courier (PASO R.1) — espejo del backend ──
+    CAPABILITIES.CUSTOMER_VIEW,
+    CAPABILITIES.PACKAGE_CONSOLIDATE,
+    CAPABILITIES.PACKAGE_RELEASE,
+    CAPABILITIES.PACKAGE_DELIVER,
   ],
   // ─────────────────────────────────────────────────────────────
   // CONTADOR (ACCOUNTANT) — solo-contabilidad. Mantener en sync con backend.
