@@ -19,7 +19,6 @@ export const CAPABILITIES = {
   TREASURY_VIEW_BRANCH: "treasury.view_branch",
   CASH_VIEW: "cash.view",
   CASH_OPEN: "cash.open",
-  CASH_CHARGE: "cash.charge",
   CASH_CLOSE: "cash.close",
   CASH_SESSION_MANAGE: "cash.session.manage",
   CASH_BOX_VIEW: "cash_box.view",
@@ -32,7 +31,6 @@ export const CAPABILITIES = {
   CASH_SESSION_CLOSE_FINAL: "cash_session.close_final",
   PAYMENT_QUEUE_VIEW: "payment.queue.view",
   PAYMENT_COLLECT: "payment.collect",
-  PAYMENT_COLLECT_DIRECT: "payment.collect.direct",
   PAYMENT_VOID: "payment.void",
   PAYMENT_REFUND: "payment.refund",
   PAYMENT_PRINT_RECEIPT: "payment.print_receipt",
@@ -53,7 +51,6 @@ export const CAPABILITIES = {
   BRANCH_DASHBOARD_VIEW: "branch.dashboard.view",
   SALES_VIEW: "sales.view",
   CASH_PAYMENTS_VIEW: "cash.payments.view",
-  CASH_PAYMENTS_COLLECT: "cash.payments.collect",
   CASH_SESSION_OPERATE: "cash.session.operate",
   CASH_REVIEW: "cash.review",
   CASH_AUTO_CLOSE_REVIEW: "cash.auto_close.review",
@@ -108,6 +105,12 @@ export const CAPABILITIES = {
   CLAIM_RESOLVE: "claim.resolve",
   PROMO_CREATE: "promo.create",
   PROMO_APPROVE: "promo.approve",
+
+  // ── Entrega y custodia de efectivo (PASO R.3) — espejo del backend ──
+  DELIVERY_HANDOVER: "delivery.handover",
+  DELIVERY_LASTMILE: "delivery.lastmile",
+  CUSTODY_HANDOFF: "custody.handoff",
+  CUSTODY_RECEIVE: "custody.receive",
 } as const;
 
 export type Capability = (typeof CAPABILITIES)[keyof typeof CAPABILITIES];
@@ -128,7 +131,6 @@ export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     // [V2] Legacy cash capabilities kept in sync with backend policies.ts
     CAPABILITIES.CASH_VIEW,
     CAPABILITIES.CASH_OPEN,
-    CAPABILITIES.CASH_CHARGE,
     CAPABILITIES.CASH_CLOSE,
     CAPABILITIES.CASH_SESSION_MANAGE,
     CAPABILITIES.CASH_BOX_VIEW,
@@ -141,7 +143,6 @@ export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     CAPABILITIES.CASH_SESSION_CLOSE_FINAL,
     CAPABILITIES.PAYMENT_QUEUE_VIEW,
     CAPABILITIES.PAYMENT_COLLECT,
-    CAPABILITIES.PAYMENT_COLLECT_DIRECT,
     CAPABILITIES.PAYMENT_VOID,
     CAPABILITIES.PAYMENT_REFUND,
     CAPABILITIES.PAYMENT_PRINT_RECEIPT,
@@ -159,7 +160,6 @@ export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     CAPABILITIES.WAREHOUSE_VIEW,
     CAPABILITIES.DISPATCH_MARK,
     CAPABILITIES.CASH_PAYMENTS_VIEW,
-    CAPABILITIES.CASH_PAYMENTS_COLLECT,
     CAPABILITIES.CASH_SESSION_OPERATE,
     CAPABILITIES.CASH_REVIEW,
     CAPABILITIES.CASH_AUTO_CLOSE_REVIEW,
@@ -169,6 +169,11 @@ export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     CAPABILITIES.OPERATIONAL_DAY_CLOSE,
     CAPABILITIES.OPERATIONAL_DAY_APPROVE_DELEGATE,
     CAPABILITIES.DISPATCH_VIEW,
+    // ── Entrega y custodia (PASO R.3) ──
+    CAPABILITIES.DELIVERY_HANDOVER,
+    CAPABILITIES.DELIVERY_LASTMILE,
+    CAPABILITIES.CUSTODY_HANDOFF,
+    CAPABILITIES.CUSTODY_RECEIVE,
     CAPABILITIES.APPROVAL_REQUEST_CREATE,
     CAPABILITIES.APPROVAL_REQUEST_REVIEW,
     CAPABILITIES.AUDIT_VIEW,
@@ -192,6 +197,10 @@ export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     CAPABILITIES.CUSTOMER_EDIT,
     CAPABILITIES.PREALERT_CREATE,
     CAPABILITIES.CLAIM_OPEN,
+    // ── Cobro y entrega (PASO R.3) ──
+    CAPABILITIES.PAYMENT_COLLECT,
+    CAPABILITIES.DELIVERY_HANDOVER,
+    CAPABILITIES.CUSTODY_HANDOFF,
     // ── Documentos e Impresión (FASE 3) ──
     CAPABILITIES.DOCUMENT_PRINT,
     CAPABILITIES.DOCUMENT_SKIP_PRINT,
@@ -200,7 +209,6 @@ export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
   CASHIER: [
     CAPABILITIES.CASH_VIEW,
     CAPABILITIES.CASH_OPEN,
-    CAPABILITIES.CASH_CHARGE,
     CAPABILITIES.CASH_CLOSE,
     CAPABILITIES.CASH_SESSION_MANAGE,
     CAPABILITIES.CASH_BOX_VIEW,
@@ -208,16 +216,17 @@ export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     CAPABILITIES.CASH_SESSION_CLOSE_REQUEST,
     CAPABILITIES.PAYMENT_QUEUE_VIEW,
     CAPABILITIES.PAYMENT_COLLECT,
-    CAPABILITIES.PAYMENT_COLLECT_DIRECT,
     CAPABILITIES.PAYMENT_PRINT_RECEIPT,
     CAPABILITIES.CASH_MOVEMENT_VIEW,
     CAPABILITIES.CASH_MOVEMENT_CREATE,
     CAPABILITIES.BRANCH_DASHBOARD_VIEW,
     CAPABILITIES.CASH_PAYMENTS_VIEW,
-    CAPABILITIES.CASH_PAYMENTS_COLLECT,
     CAPABILITIES.CASH_SESSION_OPERATE,
     CAPABILITIES.OPERATIONS_VIEW,
     CAPABILITIES.APPROVAL_REQUEST_CREATE,
+    // ── Custodia (PASO R.3) ──
+    CAPABILITIES.CUSTODY_HANDOFF,
+    CAPABILITIES.CUSTODY_RECEIVE,
     // ── Documentos e Impresión (FASE 3) ──
     CAPABILITIES.DOCUMENT_PRINT,
     CAPABILITIES.DOCUMENT_REPRINT,
@@ -252,9 +261,9 @@ export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     CAPABILITIES.PACKAGE_CONSOLIDATE,
     CAPABILITIES.PACKAGE_RELEASE,
     CAPABILITIES.PACKAGE_DELIVER,
+    CAPABILITIES.DELIVERY_HANDOVER, // entrega en mostrador (PASO R.3)
   ],
   // Última milla (PASO R.2). Aguas abajo de la frontera antifraude: nunca pesa.
-  // El cobro contra entrega y la custodia se conceden en R.3/R.4.
   COURIER: [
     CAPABILITIES.BRANCH_DASHBOARD_VIEW,
     CAPABILITIES.DISPATCH_VIEW,
@@ -263,6 +272,12 @@ export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     CAPABILITIES.CUSTOMER_VIEW,
     CAPABILITIES.APPROVAL_REQUEST_CREATE,
     CAPABILITIES.DOCUMENT_PRINT,
+    // ── Cobro contra entrega + custodia (PASO R.3) ──
+    // Cobra SOLO con caja abierta a su nombre (assertCanCollectPayment → 409).
+    // custody.handoff sí, custody.receive NO (no cierra su propia cadena).
+    CAPABILITIES.PAYMENT_COLLECT,
+    CAPABILITIES.DELIVERY_LASTMILE,
+    CAPABILITIES.CUSTODY_HANDOFF,
   ],
   // ─────────────────────────────────────────────────────────────
   // CONTADOR (ACCOUNTANT) — solo-contabilidad. Mantener en sync con backend.

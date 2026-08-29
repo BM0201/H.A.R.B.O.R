@@ -140,6 +140,11 @@ export function toHttpErrorResponse(error: unknown) {
     if (error.message === "BRANCH_NOT_ACTIVE") {
       return errJson("CONFLICT", "La sucursal no está activa.", 409);
     }
+    // PASO R.3: tiene la capacidad de cobrar pero no una gaveta abierta a su
+    // nombre. Es estado, no permiso → 409, no 403.
+    if (error.message === "CASH_SESSION_REQUIRED") {
+      return errJson("CASH_SESSION_REQUIRED", "Abrí una sesión de caja a tu nombre antes de cobrar.", 409);
+    }
     if (error.message === "OPERATIONAL_DAY_NOT_ACTIVE") {
       return errJson("CONFLICT", "El día operativo de esta sesión ya no está activo.", 409);
     }

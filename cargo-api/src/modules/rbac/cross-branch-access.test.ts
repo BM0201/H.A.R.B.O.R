@@ -65,7 +65,9 @@ const CRITICAL_BRANCH_OPERATIONS: Array<{
   { endpoint: "POST /api/prealerts (pre-alerta)", capability: CAPABILITIES.PREALERT_CREATE, role: "COUNTER" },
   { endpoint: "GET /api/branch/sales (historial)", capability: CAPABILITIES.SALES_VIEW, role: "COUNTER" },
   // ── Pagos / Caja ──
-  { endpoint: "POST /api/branch/payments/collect (cobrar)", capability: CAPABILITIES.PAYMENT_COLLECT, role: "CASHIER" },
+  // La ruta de cobro se construye con Package/billing (PASO R.3 dejó el
+  // contrato: payment.collect + gaveta abierta → 409 si no la hay).
+  { endpoint: "POST .../payments/collect (cobrar)", capability: CAPABILITIES.PAYMENT_COLLECT, role: "CASHIER" },
   { endpoint: "POST /api/branch/payments/refund", capability: CAPABILITIES.PAYMENT_REFUND, role: "BRANCH_ADMIN" },
   { endpoint: "POST /api/branch/cash-session (abrir caja)", capability: CAPABILITIES.CASH_SESSION_OPEN, role: "BRANCH_ADMIN" },
   { endpoint: "POST .../cash-session/use (operar caja)", capability: CAPABILITIES.CASH_SESSION_USE, role: "CASHIER" },

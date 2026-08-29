@@ -37,3 +37,28 @@ test("rbac: COURIER entrega y marca; aguas abajo de la frontera antifraude no pe
   assert.equal(can("COURIER", CAPABILITIES.PACKAGE_RECEIVE), false);
   assert.equal(can("COURIER", CAPABILITIES.PACKAGE_CONSOLIDATE), false);
 });
+
+test("rbac: cobrar es capacidad (PASO R.3) — COUNTER/CASHIER/COURIER la tienen; bodega no", () => {
+  for (const role of ["COUNTER", "CASHIER", "COURIER"] as const) {
+    assert.equal(can(role, CAPABILITIES.PAYMENT_COLLECT), true, `${role} debería poder cobrar`);
+  }
+  assert.equal(can("WAREHOUSE_ORIGIN", CAPABILITIES.PAYMENT_COLLECT), false);
+  assert.equal(can("WAREHOUSE_DESTINATION", CAPABILITIES.PAYMENT_COLLECT), false);
+});
+
+test("rbac: quien anda en la calle con plata NO cierra su cadena de custodia", () => {
+  // custody.handoff (entregar) sí; custody.receive (confirmar) no.
+  assert.equal(can("COURIER", CAPABILITIES.CUSTODY_HANDOFF), true);
+  assert.equal(can("COUNTER", CAPABILITIES.CUSTODY_HANDOFF), true);
+  assert.equal(can("COURIER", CAPABILITIES.CUSTODY_RECEIVE), false);
+  assert.equal(can("COUNTER", CAPABILITIES.CUSTODY_RECEIVE), false);
+  assert.equal(can("CASHIER", CAPABILITIES.CUSTODY_RECEIVE), true);
+});
+
+test("rbac: entrega en mostrador vs última milla (PASO R.3)", () => {
+  assert.equal(can("COUNTER", CAPABILITIES.DELIVERY_HANDOVER), true);
+  assert.equal(can("WAREHOUSE_DESTINATION", CAPABILITIES.DELIVERY_HANDOVER), true);
+  assert.equal(can("COURIER", CAPABILITIES.DELIVERY_HANDOVER), false);
+  assert.equal(can("COURIER", CAPABILITIES.DELIVERY_LASTMILE), true);
+  assert.equal(can("COUNTER", CAPABILITIES.DELIVERY_LASTMILE), false);
+});
