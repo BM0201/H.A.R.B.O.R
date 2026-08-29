@@ -135,10 +135,21 @@ const SYSTEM_ADMIN_ONLY: readonly Capability[] = [
   CAPABILITIES.SYSTEM_ADMIN_SETTINGS,
 ];
 
+/**
+ * PASO R.6 — frontera antifraude: `package.measure` (fijar el peso facturable
+ * = cuánto se le cobra al cliente) NO lo tiene NADIE por herencia global, ni
+ * siquiera MASTER. Solo `WAREHOUSE_ORIGIN`. Una corrección la hace MASTER/OWNER/
+ * SYS con `package.measure.correct`, que es auditable y una operación distinta.
+ */
+const FRAUD_BOUNDARY_ONLY: readonly Capability[] = [CAPABILITIES.PACKAGE_MEASURE];
+
+const globalExcept = (extra: readonly Capability[] = []) =>
+  ALL_CAPABILITIES.filter((c) => !FRAUD_BOUNDARY_ONLY.includes(c) && !extra.includes(c));
+
 export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
-  SYSTEM_ADMIN: [...ALL_CAPABILITIES],
-  OWNER: ALL_CAPABILITIES.filter(c => !SYSTEM_ADMIN_ONLY.includes(c)),
-  MASTER: ALL_CAPABILITIES.filter(c => !SYSTEM_ADMIN_ONLY.includes(c)),
+  SYSTEM_ADMIN: globalExcept(),
+  OWNER: globalExcept(SYSTEM_ADMIN_ONLY),
+  MASTER: globalExcept(SYSTEM_ADMIN_ONLY),
   BRANCH_ADMIN: [
     CAPABILITIES.CASH_VIEW,
     CAPABILITIES.CASH_OPEN,

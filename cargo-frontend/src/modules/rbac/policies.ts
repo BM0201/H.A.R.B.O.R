@@ -129,10 +129,18 @@ const SYSTEM_ADMIN_ONLY: readonly Capability[] = [
   CAPABILITIES.SYSTEM_ADMIN_SETTINGS,
 ];
 
+// PASO R.6 — frontera antifraude: `package.measure` no lo tiene NADIE por
+// herencia global (ni MASTER). Solo WAREHOUSE_ORIGIN. Corrección auditable =
+// `package.measure.correct` (esa sí la tienen MASTER/OWNER/SYS). Espejo del backend.
+const FRAUD_BOUNDARY_ONLY: readonly Capability[] = [CAPABILITIES.PACKAGE_MEASURE];
+
+const globalExcept = (extra: readonly Capability[] = []) =>
+  ALL_CAPABILITIES.filter((c) => !FRAUD_BOUNDARY_ONLY.includes(c) && !extra.includes(c));
+
 export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
-  SYSTEM_ADMIN: [...ALL_CAPABILITIES],
-  OWNER: ALL_CAPABILITIES.filter(c => !SYSTEM_ADMIN_ONLY.includes(c)),
-  MASTER: ALL_CAPABILITIES.filter(c => !SYSTEM_ADMIN_ONLY.includes(c)),
+  SYSTEM_ADMIN: globalExcept(),
+  OWNER: globalExcept(SYSTEM_ADMIN_ONLY),
+  MASTER: globalExcept(SYSTEM_ADMIN_ONLY),
   BRANCH_ADMIN: [
     // [V2] Legacy cash capabilities kept in sync with backend policies.ts
     CAPABILITIES.CASH_VIEW,

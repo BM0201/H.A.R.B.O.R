@@ -6,10 +6,16 @@ import { can, CAPABILITIES } from "@/modules/rbac/policies";
 // amputado en la Fase 0.2. Reemplazado por lo que importa en HARBOR: la
 // frontera antifraude y el reparto de capacidades de bodega.
 
-test("rbac: la frontera antifraude está en el catálogo — solo ORIGEN pesa", () => {
+test("rbac: la frontera antifraude está en el catálogo — solo ORIGEN pesa (PASO R.6)", () => {
   assert.equal(can("WAREHOUSE_ORIGIN", CAPABILITIES.PACKAGE_MEASURE), true);
   assert.equal(can("WAREHOUSE_DESTINATION", CAPABILITIES.PACKAGE_MEASURE), false);
   assert.equal(can("WAREHOUSE_DESTINATION", CAPABILITIES.PACKAGE_MEASURE_CORRECT), false);
+  // package.measure NO se hereda por rol global — ni MASTER lo tiene.
+  for (const role of ["SYSTEM_ADMIN", "OWNER", "MASTER"] as const) {
+    assert.equal(can(role, CAPABILITIES.PACKAGE_MEASURE), false, `${role} no debe poder pesar`);
+    // La corrección auditable sí: package.measure.correct.
+    assert.equal(can(role, CAPABILITIES.PACKAGE_MEASURE_CORRECT), true, `${role} sí corrige`);
+  }
 });
 
 test("rbac: bodega DESTINO entrega, bodega ORIGEN no", () => {
@@ -61,4 +67,25 @@ test("rbac: entrega en mostrador vs última milla (PASO R.3)", () => {
   assert.equal(can("COURIER", CAPABILITIES.DELIVERY_HANDOVER), false);
   assert.equal(can("COURIER", CAPABILITIES.DELIVERY_LASTMILE), true);
   assert.equal(can("COUNTER", CAPABILITIES.DELIVERY_LASTMILE), false);
+});
+
+test("rbac: la UI oculta, el servidor autoriza — CASHIER no tiene nada de bodega (PASO R.7)", () => {
+  for (const cap of [
+    CAPABILITIES.WAREHOUSE_VIEW,
+    CAPABILITIES.PACKAGE_RECEIVE,
+    CAPABILITIES.PACKAGE_MEASURE,
+    CAPABILITIES.PACKAGE_CONSOLIDATE,
+    CAPABILITIES.SHIPMENT_VIEW,
+  ]) {
+    assert.equal(can("CASHIER", cap), false, `CASHIER no debería tener ${cap}`);
+  }
+});
+
+// PASO R.5/R.6 — el guard "WAREHOUSE_DESTINATION nunca escribe weightLb/
+// chargeableLb" no existe todavía: no puede, porque `Package` no existe. Este
+// test reclama que exista el día que se cree el modelo (§12 pasos 2-6).
+test("frontera antifraude: guard de peso en servicio cuando exista Package", { todo: "bloqueado por el modelo Package (§12 pasos 2-6)" }, () => {
+  // Cuando exista: un WAREHOUSE_DESTINATION intentando escribir peso/medidas
+  // debe recibir 403 en el servicio, no solo tener el botón oculto.
+  assert.fail("implementar junto con Package.weightLb / chargeableLb");
 });
