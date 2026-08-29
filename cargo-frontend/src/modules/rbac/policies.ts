@@ -197,7 +197,7 @@ const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     // resultante de la sucursal (GET /api/branch/pricing/product-context) —
     // no se puede mostrar dónde cae un precio dentro de la banda sin
     // mostrar el costo contra el que se mide. Mismo comentario en el
-    // backend (hammer-api/src/modules/rbac/policies.ts) con el detalle de
+    // backend (cargo-api/src/modules/rbac/policies.ts) con el detalle de
     // qué expone exactamente ese endpoint y la alternativa si este acceso
     // deja de ser deseable.
     CAPABILITIES.PRICING_EDIT_BRANCH,

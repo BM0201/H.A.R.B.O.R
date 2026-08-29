@@ -1,7 +1,7 @@
 /**
- * Espejo puro de hammer-agent/src/heartbeat/protocol.ts — no hay paquete
- * compartido entre hammer-api y hammer-agent (misma convención que el resto
- * del repo entre hammer-api/hammer-frontend), así que la lógica de decisión
+ * Espejo puro de cargo-agent/src/heartbeat/protocol.ts — no hay paquete
+ * compartido entre cargo-api y cargo-agent (misma convención que el resto
+ * del repo entre cargo-api/cargo-frontend), así que la lógica de decisión
  * de los 4 estados de sucursal vive acá también, con la misma firma. Si
  * cambia allá, actualizar acá.
  */

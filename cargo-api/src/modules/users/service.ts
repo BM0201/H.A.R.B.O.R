@@ -385,7 +385,7 @@ export async function createUser(
 ): Promise<{ id: string; tempPassword: string }> {
   const tempPassword = generateTempPassword();
   const username = normalizeUsername(input.username);
-  const email = input.email?.trim().toLowerCase() || `${username}@hammer.local`;
+  const email = input.email?.trim().toLowerCase() || `${username}@harbor.local`;
 
   const user = await prisma.$transaction(async (tx) => {
     await assertMembershipsCanBeAssigned(input.memberships, tx);

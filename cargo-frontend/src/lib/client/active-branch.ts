@@ -9,7 +9,7 @@
  * 3. Persistir cambios en localStorage (DB persistence vía UserPreference es futuro)
  */
 
-const STORAGE_KEY = "hammer_active_branch_id";
+const STORAGE_KEY = "harbor_active_branch_id";
 
 /**
  * Obtiene el branchId activo del usuario.

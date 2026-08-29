@@ -37,7 +37,7 @@ const NODES = [
 ];
 
 /**
- * Pantalla de carga de Hammer.
+ * Pantalla de carga de HARBOR.
  * Misma estética que la animación de login: fondo cálido, triángulo con punto
  * rojo recorriendo los vértices, barra de progreso indeterminada.
  * Se usa mientras el AppLayout verifica la sesión y renderiza el shell.
@@ -46,7 +46,7 @@ const NODES = [
  * layout.tsx) en vez de tener una paleta fija — si no, el splash se pinta
  * siempre en claro encima de todo, aunque el usuario tenga oscuro activo.
  */
-export function HammerSplash() {
+export function HarborSplash() {
   const dotRef = useRef<SVGCircleElement>(null);
   // Lazy initializer obligatorio: leerlo en un useEffect introduce el mismo
   // frame de retraso (un flash claro) que este componente existe para eliminar.

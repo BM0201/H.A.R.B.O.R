@@ -12,8 +12,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "H.A.M.M.E.R. — POS / ERP",
-  description: "Sistema multi-sucursal de punto de venta y gestión empresarial.",
+  title: "HARBOR",
+  description: "Sistema de courier y carga aérea y marítima de BM CARGO — casillero, consolidación, aduana y entrega.",
 };
 
 export const viewport: Viewport = {
@@ -34,14 +34,18 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
     <html lang="es" className={inter.variable} suppressHydrationWarning>
       <body className="min-h-screen" suppressHydrationWarning>
         {/* Runs before first paint to avoid FOUC on theme reload. Prefers the
-            per-user key (hammer-theme-<userId>) over the shared global key —
+            per-user key (harbor-theme-<userId>) over the shared global key —
             on a shared terminal the global key still carries the PREVIOUS
             user's theme until applyUserTheme runs (after the splash), so
-            reading it first would flash the wrong theme for the new user. */}
+            reading it first would flash the wrong theme for the new user.
+            Default is 'light' (PASO 8 B.1): the operating scene is high
+            ambient light — Miami warehouse under fluorescents, Managua counter
+            with the door open — so the OS 'prefers-color-scheme: dark' hint is
+            NOT honoured here. Dark is opt-in via the toggle. */}
         <script
           nonce={nonce}
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var u=localStorage.getItem('hammer-theme-user');var t=u&&localStorage.getItem('hammer-theme-'+u);if(!t)t=localStorage.getItem('hammer-theme');if(!t)t=window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';var d=document.documentElement;d.dataset.theme=t;d.style.colorScheme=t;}catch(e){}})();`,
+            __html: `(function(){try{var u=localStorage.getItem('harbor-theme-user');var t=u&&localStorage.getItem('harbor-theme-'+u);if(!t)t=localStorage.getItem('harbor-theme');if(t!=='dark'&&t!=='light')t='light';var d=document.documentElement;d.dataset.theme=t;d.style.colorScheme=t;}catch(e){}})();`,
           }}
         />
         {/* Register service worker for offline POS support.

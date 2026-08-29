@@ -99,7 +99,7 @@ const FLAGGED_STATES = new Set<CashIndicatorState>(["APPROACHING", "READY", "OVE
 /**
  * prompt-libro-mayor-tesoreria.md §6 — la pantalla lidera con el dinero
  * (6.1 posición, 6.2 lista con saldo real), no con metadatos. La palabra
- * "esperado" no es adorno: Hammer no se conecta al banco.
+ * "esperado" no es adorno: HARBOR no se conecta al banco.
  */
 export default function TreasuryPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -1233,7 +1233,7 @@ function ConfirmDepositForm({ custody, bankAccounts, onClose, onConfirmed }: { c
  * Tarjetas ligadas a una cuenta + registro de pagos que SALEN de esa cuenta
  * (proveedor, planilla, gasto). Es la contraparte del cobro: el cobro entra
  * por venta, el pago sale por acá y baja el saldo esperado de la MISMA cuenta.
- * "Esperado" porque Hammer no se conecta al banco — refleja lo que el negocio
+ * "Esperado" porque HARBOR no se conecta al banco — refleja lo que el negocio
  * registró, no el extracto bancario.
  */
 function AccountPaymentsPanel({ accounts, onChanged }: { accounts: BankAccount[]; onChanged: () => void }) {

@@ -1,6 +1,6 @@
 /**
  * Cálculo de nómina Nicaragua — espejo cliente de los módulos del backend
- * (hammer-api/src/modules/payroll/payroll-nicaragua.ts y
+ * (cargo-api/src/modules/payroll/payroll-nicaragua.ts y
  * prestaciones-sociales.ts).
  *
  * El panel de Planilla usa el desglose que devuelve el backend

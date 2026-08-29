@@ -1,5 +1,5 @@
 /**
- * Jerarquía de roles para Hammer POS.
+ * Jerarquía de roles para HARBOR.
  *
  * Reglas:
  *   SYSTEM_ADMIN → puede asignar/editar cualquier rol.

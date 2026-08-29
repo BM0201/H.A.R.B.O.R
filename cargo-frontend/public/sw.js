@@ -1,5 +1,5 @@
-// Hammer POS — Service Worker (app shell cache)
-// Caches the POS page and its static assets so the app loads without network.
+// HARBOR — Service Worker (app shell cache)
+// Caches the app shell and its static assets so it loads without network.
 // API calls are intentionally NOT intercepted — the React layer handles offline data.
 //
 // Bug reportado: un despliegue nuevo en el servidor no se veía reflejado en
@@ -14,7 +14,7 @@
 // `updateViaCache: "none"` para que el navegador siempre revise bytes
 // frescos de ESTE archivo (nunca desde su propio caché HTTP) — así el
 // cambio de versión se detecta de forma confiable.
-const CACHE = "hammer-pos-v2";
+const CACHE = "harbor-v1";
 const PRECACHE = ["/"];
 
 self.addEventListener("install", (event) => {

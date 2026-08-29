@@ -7,7 +7,7 @@ import { apiFetch } from "@/lib/client/api";
 type Theme = "light" | "dark";
 
 function userKey(userId: string) {
-  return `hammer-theme-${userId}`;
+  return `harbor-theme-${userId}`;
 }
 
 /**
@@ -16,17 +16,20 @@ function userKey(userId: string) {
  *
  * Orden de precedencia: localStorage por usuario (lo que el usuario tocó en
  * ESTE dispositivo más recientemente) > preferencia guardada en el servidor
- * (serverPreference, para un dispositivo nuevo o caché limpiada) > sistema.
+ * (serverPreference, para un dispositivo nuevo o caché limpiada) > claro.
+ *
+ * El default es 'light' (PASO 8 B.1), no `prefers-color-scheme`: la escena de
+ * uso es de luz ambiente alta y el vidrio oscuro se vuelve espejo. El modo
+ * oscuro se activa a mano con el toggle y desde ahí queda guardado.
  */
 export function applyUserTheme(userId: string, serverPreference?: Theme | null): Theme {
   try {
     const stored = localStorage.getItem(userKey(userId)) as Theme | null;
-    const theme: Theme =
-      stored ?? serverPreference ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const theme: Theme = stored ?? serverPreference ?? "light";
     document.documentElement.dataset.theme = theme;
     document.documentElement.style.colorScheme = theme;
-    localStorage.setItem("hammer-theme", theme);
-    localStorage.setItem("hammer-theme-user", userId);
+    localStorage.setItem("harbor-theme", theme);
+    localStorage.setItem("harbor-theme-user", userId);
     return theme;
   } catch {
     return "light";
@@ -69,8 +72,8 @@ export function ThemeToggle({
     document.documentElement.style.colorScheme = next;
     try {
       localStorage.setItem(userKey(userId), next);
-      localStorage.setItem("hammer-theme", next);
-      localStorage.setItem("hammer-theme-user", userId);
+      localStorage.setItem("harbor-theme", next);
+      localStorage.setItem("harbor-theme-user", userId);
     } catch {}
     setTheme(next);
 

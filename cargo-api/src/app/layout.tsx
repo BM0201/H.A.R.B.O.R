@@ -7,8 +7,8 @@ import type { Metadata } from "next";
  * Next.js requires it. All routes under `/api/*` and `/health` return JSON.
  */
 export const metadata: Metadata = {
-  title: "H.A.M.M.E.R. API",
-  description: "Backend API for H.A.M.M.E.R. POS/ERP",
+  title: "HARBOR API",
+  description: "Backend API for HARBOR — BM CARGO courier system",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

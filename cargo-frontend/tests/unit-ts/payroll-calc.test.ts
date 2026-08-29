@@ -6,7 +6,7 @@
  * La prueba 4 original (16 de agosto -> sigue devolviendo 2ª quincena,
  * correcto para el widget de próximo pago) migró junto con el cálculo de
  * fechas al backend — ahora es nextPayday() en
- * hammer-api/src/modules/payroll/payday-calendar.test.ts. Acá solo queda
+ * cargo-api/src/modules/payroll/payday-calendar.test.ts. Acá solo queda
  * pendingHalf (nunca hizo cálculo de fechas) y buildPaydayInfo, el
  * formateador puro que traduce la respuesta de la API a texto para la UI.
  *

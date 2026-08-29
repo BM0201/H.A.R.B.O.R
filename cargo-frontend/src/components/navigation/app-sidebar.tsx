@@ -21,7 +21,7 @@ import {
   ShieldCheck,
   ClipboardList,
   BarChart3,
-  Hammer,
+  Anchor,
   Building2,
   Globe,
   Store,
@@ -367,7 +367,7 @@ export function AppSidebar({
     "--sidebar-role-icon": roleIcon,
   };
 
-  /* Hammer animation — replay on expand */
+  /* Brand-mark animation — replay on expand */
   const [brandAnimKey, setBrandAnimKey] = useState(0);
   const prevCollapsed = useRef(true);
   useEffect(() => {
@@ -395,7 +395,7 @@ export function AppSidebar({
       {/* ── 1. Brand bar ── */}
       <div className={`flex items-center gap-2.5 px-3 py-3 ${isCollapsed ? "justify-center" : "justify-between"}`}>
         {isCollapsed && !isMobileView ? (
-          /* Collapsed rail (desktop): the hammer mark IS the expand button.
+          /* Collapsed rail (desktop): the brand mark IS the expand button.
              It only toggles the rail — it never navigates, so clicking to
              expand can no longer land the user on a nav page. */
           <button
@@ -407,32 +407,32 @@ export function AppSidebar({
             aria-label="Expandir menú"
             aria-expanded={false}
           >
-            <Hammer className="h-4 w-4 text-white" />
+            <Anchor className="h-4 w-4 text-white" />
           </button>
         ) : (
           <>
-            {/* Brand mark (martillo + wordmark) → navigates home */}
+            {/* Brand mark (ancla + wordmark) → navigates home */}
             <Link href={(isMaster ? "/app/master" : homeHref) as Route} onClick={handleNavigation} className="flex items-center gap-2.5 min-w-0">
               <div
                 key={brandAnimKey}
                 className="brand-mark flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0"
                 style={{ background: "var(--color-brand-500)" }}
               >
-                <Hammer className="h-4 w-4 text-white" />
+                <Anchor className="h-4 w-4 text-white" />
               </div>
               <span
                 className="sidebar-label text-[0.875rem] font-semibold tracking-tight truncate"
                 style={{ color: "var(--color-sidebar-text-active)" }}
               >
-                H.A.M.M.E.R.
+                HARBOR
               </span>
             </Link>
-            {/* Collapse toggle — hammer icon, desktop only */}
+            {/* Collapse toggle — desktop only */}
             {!isMobileView && (
               <button
                 type="button"
                 onClick={toggleCollapse}
-                className="hammer-toggle flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-md transition-colors"
+                className="harbor-toggle flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-md transition-colors"
                 style={{
                   background: "transparent",
                   border: "none",
@@ -443,7 +443,7 @@ export function AppSidebar({
                 aria-label="Colapsar menú"
                 aria-expanded={true}
               >
-                <Hammer className="hammer-toggle-icon h-4 w-4" />
+                <Anchor className="harbor-toggle-icon h-4 w-4" />
               </button>
             )}
           </>

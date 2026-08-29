@@ -2,7 +2,7 @@
 /**
  * validate-critical-files.mjs
  * ────────────────────────────────────────────────────────────────────────────
- * Guardia de integridad para archivos críticos del frontend de Hammer POS.
+ * Guardia de integridad para archivos críticos del frontend de HARBOR.
  *
  * Contexto / motivación
  * ---------------------

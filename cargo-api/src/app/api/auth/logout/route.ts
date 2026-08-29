@@ -55,7 +55,7 @@ export async function POST(request: Request) {
 
   // Devolvemos JSON 200 (no un redirect server-side). El cliente ya navega a /login
   // tras el fetch. Un redirect a `request.url` apuntaría al dominio del backend
-  // (hammer-api.vercel.app/login), que el fetch intentaría seguir cross-origin y la
+  // (cargo-api.vercel.app/login), que el fetch intentaría seguir cross-origin y la
   // CSP `connect-src 'self'` del frontend bloquearía. Eso rompía el logout.
   return ok({ loggedOut: true });
 }

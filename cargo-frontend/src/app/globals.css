@@ -35,9 +35,10 @@
    ═══════════════════════════════════════════════════════════════ */
 
 /* ═══════════════════════════════════════════════════════════════
-   H.A.M.M.E.R. — Design System v4 (Fase 3)
-   WCAG AA compliant color system with 5-role differentiation.
+   HARBOR — Design System (heredado de H.A.M.M.E.R. v4, en reanclaje)
+   WCAG AA compliant color system with role differentiation.
    Contrast ratios verified: ≥ 4.5:1 for normal text, ≥ 3:1 for large/UI.
+   PASO 8: marca reanclada a HARBOR, tema claro por defecto.
    ═══════════════════════════════════════════════════════════════ */
 
 @theme {
@@ -1797,7 +1798,7 @@ a:focus-visible {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   HAMMER V2 DESIGN SYSTEM — Nuevas clases premium
+   HARBOR — clases de componente (heredadas, "v2 premium")
    ══════════════════════════════════════════════════════════════ */
 
 /* ── Page hero header ── */
@@ -1966,8 +1967,8 @@ a:focus-visible {
   opacity: 0.7;
 }
 
-/* ── Hammer brand animation ── */
-@keyframes hammer-tap {
+/* ── Brand-mark animation ── */
+@keyframes brand-tap {
   0%   { transform: rotate(0deg); }
   45%  { transform: rotate(-20deg); }
   62%  { transform: rotate(0deg); }
@@ -1977,30 +1978,30 @@ a:focus-visible {
 .brand-mark svg {
   display: inline-block;
   transform-origin: 64% 74%;
-  animation: hammer-tap 900ms cubic-bezier(.23,1,.32,1) .35s 1 both;
+  animation: brand-tap 900ms cubic-bezier(.23,1,.32,1) .35s 1 both;
 }
 .brand-mark:hover svg {
-  animation: hammer-tap 700ms cubic-bezier(.23,1,.32,1) both;
+  animation: brand-tap 700ms cubic-bezier(.23,1,.32,1) both;
 }
 @media (prefers-reduced-motion: reduce) {
   .brand-mark svg,
   .brand-mark:hover svg { animation: none; }
 }
 
-/* ── Hammer expand/collapse toggle ── */
-.hammer-toggle { transition: background-color 140ms ease, color 140ms ease; }
-.hammer-toggle:hover {
+/* ── Expand/collapse toggle ── */
+.harbor-toggle { transition: background-color 140ms ease, color 140ms ease; }
+.harbor-toggle:hover {
   background: var(--color-sidebar-hover) !important;
   color: var(--color-sidebar-text-active) !important;
 }
-.hammer-toggle-icon { transition: transform 220ms var(--ease-drawer); }
+.harbor-toggle-icon { transition: transform 220ms var(--ease-drawer); }
 /* Tap animation when hovering the collapse toggle */
-.hammer-toggle:hover .hammer-toggle-icon {
+.harbor-toggle:hover .harbor-toggle-icon {
   transform-origin: 64% 74%;
-  animation: hammer-tap 700ms cubic-bezier(.23,1,.32,1) both;
+  animation: brand-tap 700ms cubic-bezier(.23,1,.32,1) both;
 }
 @media (prefers-reduced-motion: reduce) {
-  .hammer-toggle:hover .hammer-toggle-icon { animation: none; }
+  .harbor-toggle:hover .harbor-toggle-icon { animation: none; }
 }
 
 /* ── Account popover animation ── */

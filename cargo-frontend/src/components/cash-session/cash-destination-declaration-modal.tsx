@@ -11,8 +11,8 @@ type Person = { id: string; fullName: string; username: string };
 type BankAccountOption = { id: string; bankName: string; accountAlias: string };
 
 /**
- * Espejo puro de decomposeRetainedAmount (hammer-api/src/modules/treasury/decomposition.ts)
- * — sin paquete compartido entre hammer-api y hammer-frontend, se duplica a
+ * Espejo puro de decomposeRetainedAmount (cargo-api/src/modules/treasury/decomposition.ts)
+ * — sin paquete compartido entre cargo-api y cargo-frontend, se duplica a
  * mano con la misma firma (convención del repo). Solo para mostrar el
  * desglose EN VIVO mientras se teclea "Retener"; el backend vuelve a
  * calcularlo al guardar, esto no decide nada por sí solo.

@@ -1,5 +1,5 @@
 /**
- * Política de retención de datos de H.A.M.M.E.R. — fuente única de verdad.
+ * Política de retención de datos de HARBOR — fuente única de verdad.
  *
  * Clasificación (ver docs/POLITICA-RETENCION-DATOS.md para la justificación):
  *

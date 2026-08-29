@@ -94,7 +94,7 @@ export function BanksTreasuryPanel() {
       {/* Saldo real por cuenta (libro mayor) */}
       <Card className="p-4">
         <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Saldo por cuenta</h3>
-        <p className="mb-3 text-xs text-[var(--color-text-muted)]">Calculado del libro mayor de Tesorería — apertura declarada + entradas − salidas. &quot;Esperado&quot;: Hammer no se conecta al banco.</p>
+        <p className="mb-3 text-xs text-[var(--color-text-muted)]">Calculado del libro mayor de Tesorería — apertura declarada + entradas − salidas. &quot;Esperado&quot;: HARBOR no se conecta al banco.</p>
         {accounts.length === 0 ? (
           <p className="py-4 text-center text-sm text-[var(--color-text-muted)]">Sin cuentas registradas. Agrégalas desde Tesorería.</p>
         ) : (

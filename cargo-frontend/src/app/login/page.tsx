@@ -190,7 +190,7 @@ export default function LoginPage() {
 
   /* ── Last access from localStorage ─────────────────────────────── */
   useEffect(() => {
-    setLastAcceso(fmtAcceso(localStorage.getItem("hammer_ultimo_acceso")));
+    setLastAcceso(fmtAcceso(localStorage.getItem("harbor_ultimo_acceso")));
   }, []);
 
   /* ── Fetch branches from API ────────────────────────────────────── */
@@ -243,7 +243,7 @@ export default function LoginPage() {
   /* ── Transition animation ───────────────────────────────────────── */
   function playTransition(userName: string, onDone: () => void) {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      localStorage.setItem("hammer_ultimo_acceso", Date.now().toString());
+      localStorage.setItem("harbor_ultimo_acceso", Date.now().toString());
       setLastAcceso(fmtAcceso(Date.now().toString()));
       onDone();
       return;
@@ -298,7 +298,7 @@ export default function LoginPage() {
       document.body.style.backgroundColor = loginBg;
 
       onDone();
-      localStorage.setItem("hammer_ultimo_acceso", Date.now().toString());
+      localStorage.setItem("harbor_ultimo_acceso", Date.now().toString());
       setLastAcceso(fmtAcceso(Date.now().toString()));
 
       setTimeout(() => {
@@ -610,7 +610,7 @@ export default function LoginPage() {
             </svg>
             <div style={{ display: "flex", flexDirection: "column", gap: "1px", lineHeight: 1 }}>
               <span style={{ fontFamily: "'DM Mono', monospace", fontWeight: 500, fontSize: "26px", letterSpacing: "0.12em", color: p.ink }}>
-                CARGO
+                HARBOR
               </span>
               <span style={{ fontSize: "10px", color: p.ink3, letterSpacing: "0.04em", lineHeight: 1.4 }}>
                 Courier y carga aérea y marítima<br />

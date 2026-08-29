@@ -168,7 +168,7 @@ export async function apiFetch(
   }
 
   if (typeof window !== "undefined" && res.status === 403) {
-    window.dispatchEvent(new CustomEvent("hammer:access-changed", { detail: { pathname } }));
+    window.dispatchEvent(new CustomEvent("harbor:access-changed", { detail: { pathname } }));
   }
 
   return res;

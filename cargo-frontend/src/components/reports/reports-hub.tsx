@@ -156,12 +156,12 @@ const C: Record<string, ColumnDef> = {
   cuota:          { key: "cuota",          label: "Cuota",            type: "currency",align: "right" },
 };
 
-// Mismo tope que hammer-api/src/modules/reports/report-definitions.ts
+// Mismo tope que cargo-api/src/modules/reports/report-definitions.ts
 // (REPORT_ROW_CAP) — un rango de varios meses ya no trunca en silencio.
 const REPORT_ROW_CAP = 20_000;
 
 // CAMBIO 5 (prompt-reportes-v2): documento de auditoría multi-mes — mismas
-// SECTION_KEYS que hammer-api/src/app/api/reports/audit-document/route.ts.
+// SECTION_KEYS que cargo-api/src/app/api/reports/audit-document/route.ts.
 // "Cobros" arranca sin marcar por defecto (mockup); el resto sí.
 const AUDIT_DOCUMENT_SECTIONS: { key: string; label: string; defaultChecked: boolean }[] = [
   { key: "sales-detail",       label: "Ventas con detalle",       defaultChecked: true  },

@@ -12,7 +12,7 @@ import { executeAutoClosureForAllBranches } from "@/modules/cash-closure/service
 
 declare global {
   // eslint-disable-next-line no-var
-  var __hammerCashClosureSchedulerRunning: boolean | undefined;
+  var __harborCashClosureSchedulerRunning: boolean | undefined;
 }
 
 let schedulerInterval: ReturnType<typeof setInterval> | null = null;
@@ -43,11 +43,11 @@ export function startCashClosureScheduler(): void {
     return;
   }
 
-  if (globalThis.__hammerCashClosureSchedulerRunning || schedulerInterval) {
+  if (globalThis.__harborCashClosureSchedulerRunning || schedulerInterval) {
     return;
   }
 
-  globalThis.__hammerCashClosureSchedulerRunning = true;
+  globalThis.__harborCashClosureSchedulerRunning = true;
   console.log("[CashClosure Legacy Scheduler] Starting as wrapper for CashSession auto-close.");
 
   void checkAndClose();
@@ -61,6 +61,6 @@ export function stopCashClosureScheduler(): void {
     clearInterval(schedulerInterval);
     schedulerInterval = null;
   }
-  globalThis.__hammerCashClosureSchedulerRunning = false;
+  globalThis.__harborCashClosureSchedulerRunning = false;
   console.log("[CashClosure Legacy Scheduler] Stopped");
 }

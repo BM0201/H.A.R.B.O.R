@@ -1,5 +1,5 @@
 /**
- * MFA Service — gestión de TOTP para Hammer POS
+ * MFA Service — gestión de TOTP para HARBOR
  *
  * Flujo de activación:
  *   1. setupMfa()    → genera secreto temporal, devuelve secret + otpauthUri

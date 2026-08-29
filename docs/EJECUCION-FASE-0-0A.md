@@ -181,6 +181,62 @@ npm run db:seed
 Credenciales demo: `master / Dev@Seed#2024!LocalOnly` · resto `Cargo1234!` ·
 cliente portal `cliente@example.com / Cargo1234!`.
 
+---
+
+## PASO 8 — Marca, identidad visual y seguridad (en curso, 2026-08-29)
+
+Spec: `docs/prompts/HARBOR-PASO-8-marca-identidad-y-seguridad.md`. No toca dominio.
+
+- **Skill `impeccable`** instalada en `.claude/skills/impeccable/` (`npx impeccable
+  skills install`). `.claude/skills/` gitignoreado — es un paquete externo, se
+  reinstala. Sus hooks se mergearon en `.claude/settings.local.json` (local).
+- **`PRODUCT.md`** (raíz) escrito con el `init` de impeccable — describe BM CARGO
+  y su modelo de casillero (dirección única en USA + número de casillero por
+  cliente + pre-alertas que el cliente ingresa).
+- **PASO A — barrido de marca (hecho).** `HARBOR` sin puntos como forma única
+  (no es acrónimo). 28 archivos + rename `hammer-splash.tsx` → `harbor-splash.tsx`
+  (`HammerSplash` → `HarborSplash`). Icono de marca lucide `Hammer` → `Anchor`.
+  Wordmark `H.A.M.M.E.R.` / `CARGO` → `HARBOR` (el pie sigue "© BM CARGO", que es
+  la empresa). Clases `.hammer-toggle*` → `.harbor-toggle*`, `@keyframes
+  hammer-tap` → `brand-tap`, evento `hammer:access-changed` → `harbor:…`, keys
+  `localStorage` `hammer-*` → `harbor-*` en los no-heredados. Quedan 4 keys
+  `hammer.*` a propósito en módulos heredados (brain, cash-session, finance,
+  payroll) — se renombran al migrar a `contexts/` (ADR-0007). Cookies y
+  workspaces **no** se renombraron (van en su ventana, invalidan sesiones).
+- **PASO B.1 — tema claro por defecto (hecho).** Anti-FOUC en `app/layout.tsx` y
+  `applyUserTheme` en `theme-toggle.tsx`: default `'light'`, ya no se consulta
+  `prefers-color-scheme`. El oscuro sigue disponible por toggle. El cascade CSS
+  ya era `[data-theme="dark"]`-driven.
+- Verde tras A + B.1: `cargo-api` typecheck + `npm test` 570/570 + `arch:check`;
+  `cargo-frontend` typecheck + lint + `validate:critical` + unit + logic.
+
+### PASO 8 — lo que falta
+
+- **B.2 paleta** — decidido: **"grafito + acento petróleo"** (marca grafito frío
+  casi neutra; un acento petróleo/cian hue ~205 OKLCH usado <10% en enlaces,
+  foco, botón primario). Falta implementar: rampa `--color-brand-*` → grafito,
+  nuevo `--color-accent-*` petróleo, repuntar `--color-primary-*` y
+  `*:focus-visible` (hoy → `master` azul), re-tintar neutros fríos (hoy stone
+  cálida, `#ECEBE7` está en la banda crema que el MD rechaza), actualizar las
+  paletas inline de `login/page.tsx` y `harbor-splash.tsx`, verificar contraste
+  bajo luz ambiente alta. Quitar dead CSS `.hm-gradient-text` y `.hm-glass`.
+- **B.3 tipografía** — mono con glifos `0/O 1/l/I` desambiguados app-wide (hoy
+  DM Mono solo en `/login`; es aceptable) + `tabular-nums` en columnas numéricas.
+- **PASO C** — rampa de etapa (recorrido de tono OKLCH ordenado) ortogonal a los
+  semáforos heredados; todo estado = color + ícono + etiqueta; grep-test que
+  falle si un color de estado se define fuera de `globals.css`.
+- **PASO D** — `data-density="warehouse"|"office"` que remapea espaciado y
+  target size por tokens; un solo árbol de componentes. Token manual + TODO al
+  bloqueante de `Location`.
+- **PASO E** — E.1 código público de tracking no enumerable + vista pública
+  mínima + rate-limit + alcance por sesión (contrato del portal, aún sin portal);
+  E.2 URLs firmadas para evidencias + acotar `img-src` (hoy `'self' data: https:`);
+  E.3 auditar que toda ruta revalida permiso server-side; E.4 auditar usos de
+  `localStorage` (sin PII de paquete).
+
+Pendiente cosmético relacionado: las rampas de rol en CSS todavía dicen `sales` y
+`warehouse` (el enum ya es `COUNTER` / `WAREHOUSE_ORIGIN` / `WAREHOUSE_DESTINATION`).
+
 ## Lo que sigue
 
 - **Bloqueado** hasta responder los 5 bloqueantes duros de

@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { Toaster } from "react-hot-toast";
 import { apiFetch, unwrapApiData, type ApiResponse } from "@/lib/client/api";
 import { AppShellRouter } from "@/components/layout/app-shell-router";
-import { HammerSplash } from "@/components/layout/hammer-splash";
+import { HarborSplash } from "@/components/layout/harbor-splash";
 import type { SessionPayload } from "@/types/auth";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -52,7 +52,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   }, [router, pathname]);
 
   if (loading || !session) {
-    return <HammerSplash />;
+    return <HarborSplash />;
   }
 
   return (
