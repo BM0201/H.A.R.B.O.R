@@ -16,6 +16,7 @@
 
 import { PrismaClient, RoleCode } from "@prisma/client";
 import { hashPassword } from "../src/modules/auth/password";
+import { assertSeedTarget, SeedGuardError } from "../src/lib/seed-guard";
 
 const prisma = new PrismaClient();
 
@@ -50,6 +51,7 @@ async function seedBranchRoleConfig(branchId: string, actorUserId: string) {
 }
 
 async function main(): Promise<void> {
+  assertSeedTarget();
   console.log("🔧 Seed CARGO (development) — starting …");
 
   // ── 1. Agencia origen ──────────────────────────────────────────────────────
@@ -232,7 +234,11 @@ async function main(): Promise<void> {
 
 main()
   .catch((error) => {
-    console.error("❌ Seed failed:", error);
+    if (error instanceof SeedGuardError) {
+      console.error(error.message);
+    } else {
+      console.error("❌ Seed failed:", error);
+    }
     process.exit(1);
   })
   .finally(async () => {
