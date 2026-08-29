@@ -279,18 +279,29 @@ primera decía que había 2 catálogos RBAC; hay 3 y el limpio estaba muerto).
   `requestCloseCashSession`: neto de entregas en persona sin confirmar > 0 →
   **409** `UNCONFIRMED_CUSTODY_HANDOFF` (los depósitos a banco no cuentan).
 
-### PASO R — lo que falta
+- **R.5 (`4967629`)** — cascarón de rutas de logística. 10 páginas nuevas bajo
+  `/app/` con `<RouteShell>` (estado vacío = documentación: "Bloqueado por: … /
+  Requiere: …"): `warehouse/{receiving,stock,consolidation}`, `shipments`,
+  `customs`, `branch/{arrivals,dispatch}`, `delivery`, `customers`, `tracking`.
+  4 capacidades nuevas (`shipment.view`, `customs.view`, `arrival.receive`,
+  `tracking.view`). `resolveRoleHome` completo (api + frontend): cada rol a su
+  pantalla, ninguno al default (que queda como red + `console.warn`). Sidebar:
+  sección LOGISTICA derivada de `LOGISTICS_ROUTES` (`href: Route`, `capability`
+  obligatoria — un href inexistente o sin capacidad no compila). Verificado en
+  vivo: bodega-origen → `/app/warehouse/receiving`, etc.
+- **R.6 + R.7 (`ffb7d55`)** — la "matriz semilla" es `ROLE_CAPABILITIES` (se
+  construyó incremental en R.1–R.5). Frontera antifraude en el catálogo:
+  `package.measure` ya no se hereda por rol global — ni MASTER lo tiene, solo
+  `WAREHOUSE_ORIGIN`; los globales corrigen con `package.measure.correct`.
+  `BranchRoleConfig` es rol×sucursal (boolean); el override de capacidad por
+  agencia es feature aparte (schema + `canInBranch`), documentada como pendiente.
+  Tests: MASTER no pesa pero corrige; CASHIER sin nada de bodega; `test.todo`
+  del guard de peso en servicio (reclama existir cuando exista `Package`).
 
-- **R.5** — cascarón de rutas de logística (`/app/warehouse/*`, `/app/shipments`,
-  `/app/customs`, `/app/branch/arrivals`, `/app/delivery`, `/app/customers`,
-  `/app/tracking`) + `resolveRoleHome` completo (cada rol a su home, ninguno al
-  default) + sidebar derivado de capacidades (hoy 30 `href` hardcodeados) +
-  estado vacío como documentación ("Bloqueado por: … / Requiere: …").
-- **R.6** — matriz semilla. `BranchRoleConfig` es rol×sucursal (boolean), NO
-  capacidad×sucursal → R.6 siembra la matriz por defecto a nivel código
-  (`ROLE_CAPABILITIES`); el override por sucursal es feature aparte.
-- **R.7** — tests restantes (los 10 roles aterrizan en su home; ítem de sidebar
-  sin capacidad falla el typecheck).
+**PASO R completo** — 10 commits en `harbor-paso-r`, `main` intacto. Migraciones
+nuevas: `add_courier_role`, `custody_receipt_confirmed`. Sin ruta HTTP para
+`confirmCustodyReceipt` ni para el cobro courier (van con el módulo de última
+milla, que depende de `Package`).
 
 ## Lo que sigue
 
