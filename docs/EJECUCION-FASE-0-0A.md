@@ -1,0 +1,176 @@
+# Ejecución — Fase 0 (0.1 + 0.2) y Fase 0.A (A/B/C) + HARBOR paso 7
+
+Registro de qué se hizo, en qué orden y con qué desviaciones. Fecha: 2026-08-28.
+Sin git durante la ejecución; backups locales en `Downloads/`
+(`BM CARGO .backup-2026-08-28.zip`, `BM CARGO .checkpoint-0A-2026-08-28.zip`).
+
+Los prompts de origen están en `docs/prompts/`. El registro de arquitectura
+consolidado en `docs/ARQUITECTURA-HARBOR.md`.
+
+---
+
+## Fase 0.1 — Identidad del fork
+
+- Directorios renombrados: `hammer-api|frontend|agent` → `cargo-api|frontend|agent`.
+- Actualizado: `.github/workflows/ci.yml` (jobs, `working-directory`, ramas
+  `["cargo-v1","main"]`), `.github/dependabot.yml`, los 3 `package.json` +
+  `package-lock.json`, `playwright.config.ts`, `openapi.yaml`, cookie de sesión
+  (`__Host-cargo_session` en API y frontend), health endpoints, `.env.example`,
+  `scripts/prisma-validate.mjs`, emails de seed, branding visible (login wordmark
+  "CARGO", copyright, `pos-shell`, PDFs, TOTP issuer "BM CARGO", defaults de
+  nombre de negocio).
+- **Diferido** (rebrand interno, no bloqueante): claves `localStorage`/IndexedDB
+  `hammer-*`, clases CSS `.hammer-toggle` / `hammer-tap`, componente
+  `HammerSplash`, `sw.js` cache name, comentarios que citan rutas `hammer-api/...`
+  en archivos "espejo".
+
+---
+
+## Fase 0.2 — Amputación del motor de producto
+
+### Schema (`cargo-api/prisma/schema.prisma`)
+De 3786 → ~2253 líneas. **42 modelos + 23 enums borrados** (Product, Category,
+Inventory\*, Timber\*, Production\*, PurchaseOrder\*, SaleReturn/Refund/CreditNote,
+Transfer\*, Reorder\*, Replenishment\*, ProductAnalytics, PricingConfig, …).
+`Supplier` → `Carrier`. `SaleOrderLine.productId` → `description` + `packageId?`.
+
+### API
+- Borrados ~14 módulos + ~40 directorios de rutas + 19 scripts one-off de ferretería.
+- **Desviación registrada vs plan aprobado:** además del motor de producto se
+  eliminó la superficie transaccional retail — módulos `sales/service`,
+  `payments`, `documents`, `dispatch`, y rutas `sales/**`, `pos/**`,
+  `cashier/orders`, `cashier/payments`, `warehouse/**`, `master/sales-orders`,
+  `printing/sales|purchase-orders|transfers`. `sales/service.ts` eran ~3000 LoC de
+  POS-con-inventario; "cortar el FK" no era viable sin reescribirlo. Se
+  **conservan como tablas de schema + plumbing**: `SaleOrder`, `SaleOrderLine`,
+  `Payment`, `PaymentTender`, `DispatchTicket`, y `sales/realtime-sales-summary`
+  (lo usan `operations` y `dashboard`). La facturación del courier se construye
+  sobre `Package`/`Shipment` en fase posterior.
+- Recortados: `brain` (detectores de producto borrados; engine reducido a
+  cash/sales/dispatch/security; `execute-decision` y `outcomes` stubeados),
+  `reports`/`finance`/`dashboard`/`operations`/`retention`/`printing` (COGS,
+  valuación de inventario, movimientos, ABC-XYZ → cero/stub).
+- Nuevo módulo `modules/expenses/` — extraído del `pricing` borrado (los gastos
+  operativos sí sirven al courier).
+- `openapi.yaml` recortado a auth + admin.
+- 74 migraciones legacy movidas a `prisma/migrations_legacy_hammer/`;
+  `prisma/migrations/` vacío (`.gitkeep`). Baseline nuevo = paso manual con DB.
+
+### Frontend
+- Borrados 11 directorios de `components/` + 22 directorios de rutas +
+  tests de POS/pricing/producción. Nav (`app-sidebar`) recortado.
+  `validate-critical-files.mjs` reescrito. `layout.tsx`: `PosShell` →
+  `AppShellRouter`.
+
+### Gaps runtime conocidos (no bloquean CI; UI de ferretería que se rediseña en 0.3+)
+- `master/page.tsx` (Command Center): panel de sale-orders → `/api/master/sales-orders` (borrado).
+- `master/audit/print-logs/page.tsx`: botones de reimpresión → rutas de documento borradas.
+- Comentarios/config inertes con "producto"/"InventoryMovement" en
+  `reports/report-definitions.ts`, `finance/service.ts`, `rbac/policies.ts`.
+
+---
+
+## Fase 0.A — Amputación (A), Remodelado (B), Roles (C)
+
+Ver `docs/prompts/CARGO-FASE-0A-amputacion-remodelado-y-roles.md`.
+
+### PASO B — Remodelado del schema
+- **Enums nuevos:** `TransportMode`, `CarrierType`, `BenefitScope`, `ClaimType`,
+  `ClaimStatus`, `TransportServiceStatus`.
+- `ProrationMethod` ampliado (`BY_CHARGEABLE_WEIGHT` / `BY_VOLUME` /
+  `BY_DECLARED_VALUE` / `MANUAL`); `SaleOrderStatus` sin `RETURN_*`;
+  `BrainDecisionCategory` swap (fuera INVENTORY/REORDER/PURCHASING/PRODUCTION →
+  dentro LOYALTY/PRICING_CUSTOMER/CUSTOMS/STORAGE); `ApprovalType`
+  (`RETURN`→`CLAIM_SETTLEMENT`, `+PACKAGE_MEASURE_CORRECTION`); `ExpenseCategory`
+  (fuera `TRANSPORT` → `+FREIGHT_PURCHASE/CUSTOMS_FEES/WAREHOUSE_ORIGIN/LAST_MILE`).
+- **Modelos:** `Customer` sin `address`. `SaleOrder.customerId` **obligatorio**.
+  `SaleOrderLine` `+chargeableLb/rateCardTierId/freightAmount/customsAmount/storageAmount`
+  y `packageId` (sin relación aún). `InternalFreightRoute` → **`Lane`**.
+  `InternalFreightTrip` → **`Shipment`**. `InternalFreightTripLine` → **`ShipmentLine`**
+  (recreado). `Carrier` `+carrierType/scacCode`. `Discount` sin
+  `productIds/abcCategories/xyzCategories` → `targetTiers/targetSegments/targetMode/minPackages90d/benefitScope`.
+  `BrainDecision` `+customerId` + índice. `DispatchTicket` `saleOrderId` opcional,
+  `+recipientName/recipientIdNumber/signatureUrl`, `+DispatchTicketPackage` (puente).
+  `TransportService` recreado remodelado (`customerId` FK, `driverUserId`, `truckId`,
+  `addressId`). `BranchModuleConfig` +5 flags courier.
+  **Nuevos:** `Claim`, `ClaimEvidence`, `CustomerUser`, `CustomerSession`.
+- **No hecho** (deliberado): `SaleOrder` → `Waybill` (el prompt lo marca opcional;
+  menos churn en 12 índices + código).
+
+### PASO C — Roles y permisos
+- `RoleCode`: `SALES` → **`COUNTER`**; `WAREHOUSE` → **`WAREHOUSE_ORIGIN`** +
+  **`WAREHOUSE_DESTINATION`** (roles disjuntos: origen define el peso facturable,
+  destino entrega). Propagado en api + frontend: `rbac/permissions.ts`,
+  `rbac/policies.ts` (×2), `role-routing` (×2), `dashboard/access`,
+  `users`/`branches` validators + service, labels de `treasury/service`, `seed`,
+  tests, `role-colors`, `types/auth`.
+- `permissions.ts`: catálogo courier agregado como **fuente única**
+  (`customer.*`, `package.*`, `prealert.*`, `shipment.*`, `rate.*`, `customs.*`,
+  `claim.*`, `promo.*`). El cableado en cada ruta se hará a medida que se creen
+  los endpoints de Package/Shipment (0.4+).
+- `seed.ts` reescrito: agencia origen (MIA) + destino (MGA), 1 usuario demo por
+  rol, `BranchRoleConfig` sembrado, `CustomerUser` demo.
+- `cargo-frontend/middleware.ts`: ruteo `/portal/**` (cliente) separado de
+  `/app/**` (staff), cookie `__Host-cargo_portal_session` distinta.
+- **Diferido a 0.4:** guard "`WAREHOUSE_DESTINATION` nunca escribe
+  `weightLb`/`chargeableLb`" (`Package` aún no existe). Test "`CustomerUser` no
+  alcanza `/api/master`" (auth de cliente = Fase 2).
+- **Diferido a 0.5:** CRUD `/api/carriers` (las rutas `/api/suppliers` se
+  borraron en 0.2).
+
+---
+
+## HARBOR — §12 paso 7 (esqueleto + regla de dependencias en CI)
+
+Ver `docs/ARQUITECTURA-HARBOR.md`. ADR-0002/0003/0004 aceptados; 0005/0006 a discutir.
+
+- `docs/ARQUITECTURA-HARBOR.md` — registro de ADRs, actores, bounded contexts,
+  bloqueantes de dominio, secuencia §12.
+- `cargo-api/.dependency-cruiser.cjs` — reglas del ADR-0003 sobre
+  `src/contexts/**` (`domain/` no importa `application/infrastructure/interfaces/`
+  ni Prisma/Next/`@/lib`/I-O; `application/` no importa `infrastructure/interfaces/`
+  ni Prisma; sin imports profundos entre contextos; sin ciclos).
+  `npm run arch:check` + step nuevo en CI (job `api`, antes de tests).
+  Verificado que la regla muerde (probe `import PrismaClient` en `domain/` → error).
+- `cargo-api/src/contexts/` — 13 bounded contexts scaffoldeados con
+  `domain/application/infrastructure/interfaces/` + `index.ts` **vacío a
+  propósito** + README con confianza y bloqueante. `src/contexts/README.md`
+  explica la convención y por qué es carpeta aparte de `src/modules/` (legacy).
+
+---
+
+## Estado de verificación (2026-08-28)
+
+| Workspace | typecheck | tests | otros |
+|---|---|---|---|
+| cargo-api | ✅ | **570/570** ✅ | `prisma validate` ✅ · `arch:check` ✅ (395 módulos, 0 violaciones) |
+| cargo-frontend | ✅ | unit 12/12 · logic 10/10 ✅ | lint ✅ (3 warnings pre-existentes) · `validate:critical` ✅ |
+| cargo-agent | ✅ | 72/72 ✅ | intacto (módulo de cámaras ONVIF) |
+
+- Schema: **76 modelos, 50 enums, ~2518 líneas** (era 177 modelos+enums / 3786).
+- Cero llamadas prisma vivas a modelos borrados; cero imports `@/modules/<borrado>`.
+- `Package` **no existe todavía** — se crea en 0.4.
+- Tests heredados de tesorería / caja / día operativo / nómina: intactos. Solo se
+  tocaron tests de RBAC de rutas ya borradas.
+
+---
+
+## Paso manual pendiente (requiere base Neon nueva vacía)
+
+```bash
+# cargo-api/.env → DATABASE_URL + DIRECT_URL de la base CARGO (NUNCA la de ferretería)
+cd cargo-api
+npx prisma migrate dev --name cargo_baseline
+npm run db:seed   # agencias MIA/MGA + usuarios demo por rol + cliente demo
+```
+
+## Lo que sigue
+
+- **Bloqueado** hasta responder los 5 bloqueantes duros de
+  `docs/ARQUITECTURA-HARBOR.md` (sobre todo el #1, modelo de casillero): pasos
+  §12 2–6 y 8–9 (mapa de procesos, modelo de dominio, catálogo de eventos,
+  máquinas de estado, matriz de permisos, mapeo Prisma, primer vertical slice de
+  Receiving).
+- Fase 0 pasos 0.3–0.8 del prompt original (Customer/Casillero, `Package` +
+  máquina de estados, Shipment/prorrateo, tarifario, `CustomerAnalytics` RFM,
+  Brain LOYALTY, vista 360).

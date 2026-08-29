@@ -1,0 +1,38 @@
+node_modules/
+.next/
+.turbo/
+dist/
+out/
+
+# Environments
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# Misc
+*.tsbuildinfo
+.vercel
+
+# Claude Code — configuración local de sesión (permisos), no versionar
+.claude/settings.local.json
+
+# dependency-cruiser
+.dependency-cruiser-cache
+arch-graph.svg
+
+# Prisma client generado
+cargo-api/src/generated/
+**/.prisma/

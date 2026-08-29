@@ -1,0 +1,86 @@
+# CI — CARGO (courier / carga aérea y marítima)
+#
+# Reglas:
+#  - Siempre `npm ci` (nunca `npm install`): respeta el lockfile exacto y
+#    evita bumps silenciosos / dependency confusion.
+#  - La auditoría de dependencias FALLA el pipeline con vulnerabilidades
+#    high/critical en dependencias de producción (--omit=dev --audit-level=high).
+name: CI
+
+on:
+  push:
+    branches: ["cargo-v1", "main"]
+  pull_request:
+
+jobs:
+  api:
+    name: cargo-api
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cargo-api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: cargo-api/package-lock.json
+      - name: Instalar dependencias (lockfile exacto)
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Arquitectura (regla de capas hexagonal — ADR-0003)
+        run: npm run arch:check
+      - name: Tests
+        run: npm test
+      - name: Auditoría de dependencias (falla con high/critical)
+        run: npm audit --omit=dev --audit-level=high
+
+  agent:
+    name: cargo-agent
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cargo-agent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: cargo-agent/package-lock.json
+      - name: Instalar dependencias (lockfile exacto)
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Tests
+        run: npm test
+
+  frontend:
+    name: cargo-frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cargo-frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: cargo-frontend/package-lock.json
+      - name: Instalar dependencias (lockfile exacto)
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Tests unitarios
+        run: npm run test:unit
+      - name: Tests unitarios (lógica TS)
+        run: npm run test:unit:logic
+      - name: Validar archivos críticos
+        run: npm run validate:critical
+      - name: Auditoría de dependencias (falla con high/critical)
+        run: npm audit --omit=dev --audit-level=high
