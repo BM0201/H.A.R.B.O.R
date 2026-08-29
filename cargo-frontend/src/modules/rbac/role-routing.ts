@@ -9,6 +9,7 @@ export type AppRoleCode =
   | "CASHIER"
   | "WAREHOUSE_ORIGIN"
   | "WAREHOUSE_DESTINATION"
+  | "COURIER"
   | "ACCOUNTANT"
   | string;
 
@@ -40,6 +41,27 @@ export function resolveRoleHome(roleCode: AppRoleCode, globalRoles: readonly str
   if (isMasterRole(roleCode, globalRoles)) return "/app/master";
   // Contador: aterriza directamente en Finanzas & Contabilidad (única área que ve).
   if (isAccountantRole(roleCode, globalRoles)) return "/app/master/finance";
-  if (roleCode === "CASHIER") return "/app/branch/cash";
+
+  // PASO R.5 — cada rol de sucursal aterriza en SU pantalla, no en un
+  // /app/branch genérico con una caja registradora de ferretería.
+  switch (roleCode) {
+    case "BRANCH_ADMIN":
+      return "/app/branch";
+    case "CASHIER":
+      return "/app/branch/cash";
+    case "COUNTER":
+      return "/app/branch/dispatch";
+    case "WAREHOUSE_ORIGIN":
+      return "/app/warehouse/receiving";
+    case "WAREHOUSE_DESTINATION":
+      return "/app/branch/arrivals";
+    case "COURIER":
+      return "/app/delivery";
+  }
+
+  // Red para roles desconocidos — no debería alcanzarse; deja rastro.
+  if (typeof console !== "undefined") {
+    console.warn(`[resolveRoleHome] rol sin home declarado: ${roleCode} → /app/branch`);
+  }
   return "/app/branch";
 }

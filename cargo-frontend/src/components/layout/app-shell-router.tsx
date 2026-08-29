@@ -37,6 +37,13 @@ const MODULE_META: Record<string, { title: string; subtitle: string }> = {
     title: "System Admin",
     subtitle: "Roles, permisos y salud tecnica del sistema.",
   },
+  // PASO R.5 — contextos de logística (cascarón de rutas)
+  warehouse: { title: "Bodega", subtitle: "Recepción, pesaje, medición y consolidación de paquetes." },
+  shipments: { title: "Embarques", subtitle: "Carga aérea y marítima: carrier, documentación y prorrateo." },
+  customs: { title: "Aduana", subtitle: "Declaración y despacho de los embarques que llegan a Nicaragua." },
+  delivery: { title: "Última milla", subtitle: "Ruta de entrega a domicilio, evidencia y cobro contra entrega." },
+  customers: { title: "Casilleros", subtitle: "Directorio de clientes, direcciones, tier y vista 360." },
+  tracking: { title: "Seguimiento", subtitle: "Estado de un paquete por código de tracking o casillero." },
 };
 
 const SECTION_META: Record<string, { title: string; subtitle: string }> = {
@@ -49,12 +56,17 @@ const SECTION_META: Record<string, { title: string; subtitle: string }> = {
   audit: { title: "Auditoria", subtitle: "Bitacora de cambios y actividad sensible." },
   "cash-boxes": { title: "Cajas", subtitle: "Sesiones, diferencias y control de efectivo." },
   inventory: { title: "Inventario", subtitle: "Existencias, movimientos y alertas de stock." },
-  dispatch: { title: "Despacho", subtitle: "Preparacion, carga, ruta y entrega de ordenes." },
+  dispatch: { title: "Entrega en mostrador", subtitle: "Entrega de un paquete disponible al cliente, con evidencia." },
   payments: { title: "Pagos", subtitle: "Ordenes pendientes y confirmacion de cobro." },
   orders: { title: "Ventas", subtitle: "Ordenes, tickets y seguimiento comercial." },
   settings: { title: "Configuracion", subtitle: "Preferencias del sistema y operaciones." },
   "module-config": { title: "Modulos", subtitle: "Capacidades disponibles para la operacion." },
   "role-config": { title: "Roles y permisos", subtitle: "Matriz de acceso por perfil y modulo." },
+  // PASO R.5 — subsecciones de logística
+  receiving: { title: "Recepción en origen", subtitle: "Identificación, pesaje, medición y fotografía en la bodega de Miami." },
+  stock: { title: "Paquetes en bodega", subtitle: "Recibidos y aún no embarcados, por ubicación y días en bodega." },
+  consolidation: { title: "Consolidados", subtitle: "Agrupación de paquetes para asignar a un embarque." },
+  arrivals: { title: "Llegada y distribución", subtitle: "Descarga en destino, verificación y distribución a sucursales." },
 };
 
 function resolveHeaderMeta(segments: string[]) {

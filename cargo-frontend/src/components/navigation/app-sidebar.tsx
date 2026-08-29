@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef, type CSSProperties } from "re
 import Link from "next/link";
 import type { Route } from "next";
 import { usePathname } from "next/navigation";
-import { canInAnyAssignedBranch, canInBranch, CAPABILITIES } from "@/modules/rbac/policies";
+import { canInAnyAssignedBranch, canInBranch, CAPABILITIES, type Capability } from "@/modules/rbac/policies";
 import { isMasterRole, isMasterOrAbove, isOwnerRole, isSystemAdminRole, isAccountantRole, resolveRoleHome } from "@/modules/rbac/role-routing";
 import { getRoleColor } from "@/lib/role-colors";
 import { getEffectiveCapabilitySet, hasEffectiveCapability } from "@/lib/navigation/visible-modules";
@@ -39,6 +39,15 @@ import {
   ReceiptText,
   Camera,
   PiggyBank,
+  Package,
+  Boxes,
+  Layers,
+  Ship,
+  Stamp,
+  PackageOpen,
+  PackageCheck,
+  Truck,
+  Radar,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -46,6 +55,27 @@ import type { LucideIcon } from "lucide-react";
 
 type NavSection = { title: string; items: NavItem[] };
 type NavItem = { href: string; label: string; icon: LucideIcon; capabilities?: readonly string[] };
+
+/**
+ * PASO R.5 — nav de logística, derivada del catálogo de capacidades.
+ * `capability` es OBLIGATORIA y de tipo `Capability`: un `href` nuevo sin una
+ * capacidad del catálogo NO compila. `href` es `Route`: una ruta que no existe
+ * tampoco compila (typedRoutes).
+ */
+type LogisticsRoute = { href: Route; label: string; icon: LucideIcon; capability: Capability };
+
+const LOGISTICS_ROUTES: readonly LogisticsRoute[] = [
+  { href: "/app/warehouse/receiving", label: "Recepción en origen", icon: Package, capability: CAPABILITIES.PACKAGE_RECEIVE },
+  { href: "/app/warehouse/stock", label: "Paquetes en bodega", icon: Boxes, capability: CAPABILITIES.WAREHOUSE_VIEW },
+  { href: "/app/warehouse/consolidation", label: "Consolidados", icon: Layers, capability: CAPABILITIES.PACKAGE_CONSOLIDATE },
+  { href: "/app/shipments", label: "Embarques", icon: Ship, capability: CAPABILITIES.SHIPMENT_VIEW },
+  { href: "/app/customs", label: "Aduana", icon: Stamp, capability: CAPABILITIES.CUSTOMS_VIEW },
+  { href: "/app/branch/arrivals", label: "Llegada y distribución", icon: PackageOpen, capability: CAPABILITIES.ARRIVAL_RECEIVE },
+  { href: "/app/branch/dispatch", label: "Entrega en mostrador", icon: PackageCheck, capability: CAPABILITIES.DELIVERY_HANDOVER },
+  { href: "/app/delivery", label: "Última milla", icon: Truck, capability: CAPABILITIES.DELIVERY_LASTMILE },
+  { href: "/app/customers", label: "Casilleros", icon: Users, capability: CAPABILITIES.CUSTOMER_VIEW },
+  { href: "/app/tracking", label: "Seguimiento", icon: Radar, capability: CAPABILITIES.TRACKING_VIEW },
+];
 type SidebarRoleStyle = CSSProperties & {
   "--sidebar-role-active-bg": string;
   "--sidebar-role-active-text": string;
@@ -218,7 +248,13 @@ function buildNavSections(
     governanceItems.push({ href: "/app/branch/reports", label: "Reportes", icon: BarChart3 });
   }
 
+  // PASO R.5 — nav de logística, filtrada por capacidad (mismo patrón que arriba).
+  const logisticsItems: NavItem[] = LOGISTICS_ROUTES.filter(
+    (route) => hasAny(route.capability) && canInAnyAssignedBranch(session, route.capability),
+  ).map((route) => ({ href: route.href, label: route.label, icon: route.icon, capabilities: [route.capability] }));
+
   if (overviewItems.length) sections.push({ title: "GENERAL", items: overviewItems });
+  if (logisticsItems.length) sections.push({ title: "LOGISTICA", items: logisticsItems });
   if (operationItems.length) sections.push({ title: "OPERACION", items: operationItems });
   if (governanceItems.length) sections.push({ title: "CONTROL", items: governanceItems });
 

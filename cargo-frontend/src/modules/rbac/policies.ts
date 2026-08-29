@@ -111,6 +111,12 @@ export const CAPABILITIES = {
   DELIVERY_LASTMILE: "delivery.lastmile",
   CUSTODY_HANDOFF: "custody.handoff",
   CUSTODY_RECEIVE: "custody.receive",
+
+  // ── Vistas de los contextos de logística (PASO R.5) — espejo del backend ──
+  SHIPMENT_VIEW: "shipment.view",
+  CUSTOMS_VIEW: "customs.view",
+  ARRIVAL_RECEIVE: "arrival.receive",
+  TRACKING_VIEW: "tracking.view",
 } as const;
 
 export type Capability = (typeof CAPABILITIES)[keyof typeof CAPABILITIES];
@@ -186,6 +192,11 @@ export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     CAPABILITIES.MANUAL_INVOICE_CANCEL,
     CAPABILITIES.PRINT_LOG_VIEW,
     CAPABILITIES.SALES_HISTORY_VIEW,
+    // -- Logistica (PASO R.5) --
+    CAPABILITIES.SHIPMENT_VIEW,
+    CAPABILITIES.CUSTOMS_VIEW,
+    CAPABILITIES.ARRIVAL_RECEIVE,
+    CAPABILITIES.TRACKING_VIEW,
   ],
   COUNTER: [
     CAPABILITIES.BRANCH_DASHBOARD_VIEW,
@@ -205,6 +216,8 @@ export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     CAPABILITIES.DOCUMENT_PRINT,
     CAPABILITIES.DOCUMENT_SKIP_PRINT,
     CAPABILITIES.SALES_HISTORY_VIEW,
+    // -- Logistica (PASO R.5) --
+    CAPABILITIES.TRACKING_VIEW,
   ],
   CASHIER: [
     CAPABILITIES.CASH_VIEW,
@@ -232,6 +245,8 @@ export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     CAPABILITIES.DOCUMENT_REPRINT,
     CAPABILITIES.MANUAL_INVOICE_REGISTER,
     CAPABILITIES.PRINT_LOG_VIEW,
+    // -- Logistica (PASO R.5) --
+    CAPABILITIES.TRACKING_VIEW,
   ],
   WAREHOUSE_ORIGIN: [
     CAPABILITIES.WAREHOUSE_VIEW,
@@ -246,6 +261,9 @@ export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     CAPABILITIES.PACKAGE_MEASURE,
     CAPABILITIES.PREALERT_MATCH,
     CAPABILITIES.PACKAGE_CONSOLIDATE,
+    // -- Logistica (PASO R.5) --
+    CAPABILITIES.SHIPMENT_VIEW,
+    CAPABILITIES.TRACKING_VIEW,
   ],
   // Bodega DESTINO: NUNCA escribe peso/medidas (frontera antifraude, sin PACKAGE_MEASURE*).
   WAREHOUSE_DESTINATION: [
@@ -262,6 +280,11 @@ export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     CAPABILITIES.PACKAGE_RELEASE,
     CAPABILITIES.PACKAGE_DELIVER,
     CAPABILITIES.DELIVERY_HANDOVER, // entrega en mostrador (PASO R.3)
+    // -- Logistica (PASO R.5) --
+    CAPABILITIES.SHIPMENT_VIEW,
+    CAPABILITIES.CUSTOMS_VIEW,
+    CAPABILITIES.ARRIVAL_RECEIVE,
+    CAPABILITIES.TRACKING_VIEW,
   ],
   // Última milla (PASO R.2). Aguas abajo de la frontera antifraude: nunca pesa.
   COURIER: [
@@ -278,6 +301,8 @@ export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     CAPABILITIES.PAYMENT_COLLECT,
     CAPABILITIES.DELIVERY_LASTMILE,
     CAPABILITIES.CUSTODY_HANDOFF,
+    // -- Logistica (PASO R.5) --
+    CAPABILITIES.TRACKING_VIEW,
   ],
   // ─────────────────────────────────────────────────────────────
   // CONTADOR (ACCOUNTANT) — solo-contabilidad. Mantener en sync con backend.
