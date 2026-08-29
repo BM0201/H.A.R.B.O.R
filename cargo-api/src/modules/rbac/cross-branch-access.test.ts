@@ -61,8 +61,8 @@ const CRITICAL_BRANCH_OPERATIONS: Array<{
   capability: Capability;
   role: RoleCode;
 }> = [
-  // ── Ventas / mostrador ──
-  { endpoint: "POST /api/branch/sales/drafts (borradores)", capability: CAPABILITIES.SALES_DRAFT_MANAGE, role: "COUNTER" },
+  // ── Mostrador / courier ──
+  { endpoint: "POST /api/prealerts (pre-alerta)", capability: CAPABILITIES.PREALERT_CREATE, role: "COUNTER" },
   { endpoint: "GET /api/branch/sales (historial)", capability: CAPABILITIES.SALES_VIEW, role: "COUNTER" },
   // ── Pagos / Caja ──
   { endpoint: "POST /api/branch/payments/collect (cobrar)", capability: CAPABILITIES.PAYMENT_COLLECT, role: "CASHIER" },
@@ -118,8 +118,8 @@ test("anti-IDOR: hasBranchAccess niega la sucursal ajena para todos los roles de
 
 test("anti-IDOR: sesión null nunca pasa un guard de sucursal", () => {
   assert.equal(hasBranchAccess(null, BRANCH_A), false);
-  assert.equal(canInBranch(null, BRANCH_A, CAPABILITIES.POS_SELL), false);
-  assert.throws(() => requireBranchCapability(null, BRANCH_A, CAPABILITIES.POS_SELL), /FORBIDDEN/);
+  assert.equal(canInBranch(null, BRANCH_A, CAPABILITIES.PACKAGE_DELIVER), false);
+  assert.throws(() => requireBranchCapability(null, BRANCH_A, CAPABILITIES.PACKAGE_DELIVER), /FORBIDDEN/);
 });
 
 // ─── Endpoints de Master (usuarios) ──────────────────────────────
@@ -141,5 +141,5 @@ test("anti-IDOR: MASTER global sí tiene acceso a cualquier sucursal (bypass doc
   };
   assert.equal(isMaster(master), true);
   assert.equal(hasBranchAccess(master, BRANCH_B), true);
-  assert.doesNotThrow(() => requireBranchCapability(master, BRANCH_B, CAPABILITIES.POS_SELL));
+  assert.doesNotThrow(() => requireBranchCapability(master, BRANCH_B, CAPABILITIES.PACKAGE_DELIVER));
 });

@@ -102,7 +102,7 @@ test("requireEffectiveBranchCapability: throws for missing capability", () => {
 test("requireEffectiveBranchCapability: does not throw for valid capability", () => {
   const s = makeSession();
   assert.doesNotThrow(() =>
-    requireEffectiveBranchCapability(s, "b1", CAPABILITIES.SALES_DRAFT_MANAGE),
+    requireEffectiveBranchCapability(s, "b1", CAPABILITIES.PREALERT_CREATE),
   );
 });
 

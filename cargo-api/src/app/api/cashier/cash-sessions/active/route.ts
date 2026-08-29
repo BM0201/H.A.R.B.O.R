@@ -24,25 +24,17 @@ export async function GET(request: Request) {
     }
 
     const canOperateCash = canInBranch(session, parsed.data.branchId, CAPABILITIES.CASH_SESSION_OPERATE);
-    const canSubmitDirectSale = canInBranch(session, parsed.data.branchId, CAPABILITIES.SALES_SUBMIT_PAYMENT);
 
-    if (!isMaster(session) && !canOperateCash && !canSubmitDirectSale) {
+    // PASO R.1b: se quitó `canSubmitDirectSale` (CAPABILITIES.SALES_SUBMIT_PAYMENT,
+    // flujo de venta directa retail, amputado). El acceso a la sesión de caja
+    // se reconstruye en el PASO R.3 (cobrar = capability + gaveta abierta).
+    if (!isMaster(session) && !canOperateCash) {
       await logCashSessionDenied({
         actorUserId: session.userId,
         branchId: parsed.data.branchId,
         entityId: parsed.data.physicalCashBoxId ?? parsed.data.branchId,
         reason: "FORBIDDEN_ROLE",
         metadata: { role: session.roleCode },
-      });
-      return fail("FORBIDDEN", "Forbidden", 403);
-    }
-
-    if (!isMaster(session) && !canOperateCash && !canSubmitDirectSale) {
-      await logCashSessionDenied({
-        actorUserId: session.userId,
-        branchId: parsed.data.branchId,
-        entityId: parsed.data.physicalCashBoxId ?? parsed.data.branchId,
-        reason: "FORBIDDEN_BRANCH",
       });
       return fail("FORBIDDEN", "Forbidden", 403);
     }

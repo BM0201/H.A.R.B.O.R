@@ -51,6 +51,33 @@ test("rbac-parity: el conjunto de roles es idéntico", () => {
   assert.deepEqual(d, { onlyA: [], onlyB: [] }, `\n  ${JSON.stringify(d)}`);
 });
 
+test("rbac-parity: cero capacidades de módulos amputados en Fase 0.2 (PASO R.1b)", () => {
+  // Prefijos de módulos que ya NO existen: pos, inventory, catalog, production,
+  // purchases, transfers, devoluciones/cancelaciones/notas de crédito, y el
+  // pricing costo+margen de ferretería (el tarifario courier es `rate.*`).
+  const DEAD = [
+    "pos.",
+    "inventory.",
+    "master.catalog",
+    "branch.catalog",
+    "production.",
+    "purchases.",
+    "transfers.",
+    "sale.return.",
+    "sale.cancellation.",
+    "credit-note.",
+    "damaged-inventory.",
+    "master.sales.view",
+    "sales.draft.",
+    "sales.submit.",
+    "pricing.",
+    "finance.view_pricing",
+    "finance.manage_pricing",
+  ];
+  const offenders = Object.values(BE_CAPS).filter((v) => DEAD.some((p) => v.startsWith(p)));
+  assert.deepEqual(offenders, [], `\n  capacidades muertas todavía en el catálogo: ${offenders.join(", ")}`);
+});
+
 test("rbac-parity: para cada rol, el conjunto de capacidades es idéntico", () => {
   const roles = new Set([...Object.keys(FE_ROLES), ...Object.keys(BE_ROLES)]);
   const mismatches: string[] = [];

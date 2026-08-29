@@ -3,17 +3,15 @@ import { prisma } from "@/lib/prisma";
 import { CAPABILITIES, getCapabilitiesForRole } from "@/modules/rbac/policies";
 import { getEffectiveBranchMemberships } from "@/modules/rbac/effective-permissions";
 
+// PASO R.1b — se retiraron los flags de módulos de ferretería ya amputados
+// (pos, inventory, pricing, purchases, transfers, production). Los módulos
+// courier (warehouse, shipments, customs, delivery, tracking) entran con el
+// cascarón de rutas del PASO R.5.
 type ModuleFlags = {
   master: boolean;
-  pos: boolean;
   cash: boolean;
   warehouse: boolean;
   dispatch: boolean;
-  inventory: boolean;
-  pricing: boolean;
-  purchases: boolean;
-  transfers: boolean;
-  production: boolean;
   brain: boolean;
   users?: boolean;
   sessionMonitor?: boolean;
@@ -27,15 +25,9 @@ function moduleFlags(capabilities: string[]): ModuleFlags {
   const has = (capability: string) => capabilities.includes(capability);
   return {
     master: has(CAPABILITIES.MASTER_ACCESS) || has(CAPABILITIES.MASTER_DASHBOARD_VIEW),
-    pos: has(CAPABILITIES.POS_VIEW) || has(CAPABILITIES.SALES_VIEW),
     cash: has(CAPABILITIES.CASH_VIEW) || has(CAPABILITIES.CASH_PAYMENTS_VIEW),
     warehouse: has(CAPABILITIES.WAREHOUSE_VIEW),
     dispatch: has(CAPABILITIES.DISPATCH_VIEW),
-    inventory: has(CAPABILITIES.INVENTORY_VIEW) || has(CAPABILITIES.MASTER_INVENTORY_VIEW) || has(CAPABILITIES.BRANCH_INVENTORY_VIEW),
-    pricing: has(CAPABILITIES.PRICING_VIEW) || has(CAPABILITIES.PRICING_EDIT_BRANCH) || has(CAPABILITIES.PRICING_EDIT_GLOBAL),
-    purchases: has(CAPABILITIES.PURCHASES_VIEW),
-    transfers: has(CAPABILITIES.TRANSFERS_VIEW),
-    production: has(CAPABILITIES.PRODUCTION_VIEW) || has(CAPABILITIES.PRODUCTION_DASHBOARD_VIEW),
     brain: has(CAPABILITIES.BRAIN_VIEW),
     users: has(CAPABILITIES.MASTER_USERS_VIEW) || has(CAPABILITIES.MASTER_USERS_MANAGE),
     sessionMonitor: has(CAPABILITIES.MASTER_SESSIONS_VIEW) || has(CAPABILITIES.MASTER_CASH_MONITOR_VIEW),

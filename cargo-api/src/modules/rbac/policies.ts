@@ -18,20 +18,7 @@ export const CAPABILITIES = {
   SYSTEM_ADMIN_SETTINGS: "system.admin.settings",
   MASTER_ACCESS: "master.access",
   MASTER_USERS_MANAGE: "master.users.manage",
-  MASTER_CATALOG_MANAGE: "master.catalog.manage",
-  MASTER_INVENTORY_VIEW: "master.inventory.view",
-  MASTER_SALES_VIEW: "master.sales.view",
   BRANCH_DASHBOARD_VIEW: "branch.dashboard.view",
-  POS_VIEW: "pos.view",
-  POS_SELL: "pos.sell",
-  POS_PRINT: "pos.print",
-  POS_CREATE_DRAFT: "pos.create_draft",
-  POS_EDIT_DRAFT: "pos.edit_draft",
-  POS_CANCEL_OWN_DRAFT: "pos.cancel_own_draft",
-  POS_SEND_TO_CASHIER: "pos.send_to_cashier",
-  POS_DIRECT_COLLECT: "pos.direct_collect",
-  POS_PRINT_QUOTE: "pos.print_quote",
-  POS_PRINT_DELIVERY_ORDER: "pos.print_delivery_order",
   CASH_VIEW: "cash.view",
   CASH_OPEN: "cash.open",
   CASH_CHARGE: "cash.charge",
@@ -61,46 +48,11 @@ export const CAPABILITIES = {
   FINANCE_MANAGE_EXPENSES: "finance.manage_expenses",
   FINANCE_VIEW_PAYROLL: "finance.view_payroll",
   FINANCE_MANAGE_PAYROLL: "finance.manage_payroll",
-  FINANCE_VIEW_PRICING: "finance.view_pricing",
-  FINANCE_MANAGE_PRICING: "finance.manage_pricing",
   FINANCE_REPORTS_EXPORT: "finance.reports_export",
   WAREHOUSE_VIEW: "warehouse.view",
-  INVENTORY_VIEW: "inventory.view",
-  INVENTORY_ADJUST: "inventory.adjust",
-  INVENTORY_OPENING_BALANCE: "inventory.opening_balance",
-  INVENTORY_IMPORT: "inventory.import",
-  PRICING_VIEW: "pricing.view",
-  PRICING_EDIT_BRANCH: "pricing.edit_branch",
-  PRICING_EDIT_GLOBAL: "pricing.edit_global",
-  PURCHASES_VIEW: "purchases.view",
-  PURCHASES_CREATE: "purchases.create",
-  PURCHASES_APPROVE: "purchases.approve",
-  PURCHASES_RECEIVE: "purchases.receive",
-  TRANSFERS_VIEW: "transfers.view",
-  TRANSFERS_CREATE: "transfers.create",
-  TRANSFERS_APPROVE: "transfers.approve",
-  TRANSFERS_DISPATCH: "transfers.dispatch",
-  TRANSFERS_RECEIVE: "transfers.receive",
-  PRODUCTION_VIEW: "production.view",
-  PRODUCTION_RECIPES_MANAGE: "production.recipes.manage",
   BRAIN_VIEW: "brain.view",
   BRAIN_ACTIONS_MANAGE: "brain.actions.manage",
-  BRANCH_CATALOG_VIEW: "branch.catalog.view",
-  BRANCH_INVENTORY_VIEW: "branch.inventory.view",
-  INVENTORY_MOVEMENT_POST: "inventory.movement.post",
   SALES_VIEW: "sales.view",
-  SALE_RETURN_REQUEST: "sale.return.request",
-  SALE_RETURN_APPROVE: "sale.return.approve",
-  SALE_RETURN_EXECUTE: "sale.return.execute",
-  SALE_CANCELLATION_REQUEST: "sale.cancellation.request",
-  SALE_CANCELLATION_APPROVE: "sale.cancellation.approve",
-  SALE_CANCELLATION_EXECUTE: "sale.cancellation.execute",
-  CREDIT_NOTE_CREATE: "credit-note.create",
-  CREDIT_NOTE_APPROVE: "credit-note.approve",
-  DAMAGED_INVENTORY_VIEW: "damaged-inventory.view",
-  DAMAGED_INVENTORY_ADJUST: "damaged-inventory.adjust",
-  SALES_DRAFT_MANAGE: "sales.draft.manage",
-  SALES_SUBMIT_PAYMENT: "sales.submit.payment",
   CASH_PAYMENTS_VIEW: "cash.payments.view",
   CASH_PAYMENTS_COLLECT: "cash.payments.collect",
   CASH_SESSION_OPERATE: "cash.session.operate",
@@ -117,16 +69,6 @@ export const CAPABILITIES = {
   APPROVAL_REQUEST_REVIEW: "approval.request.review",
   AUDIT_VIEW: "audit.view",
   REPORTS_EXPORT: "reports.export",
-
-  // ── Production ──
-  PRODUCTION_RECIPES_VIEW: "production.recipes.view",
-  PRODUCTION_RECIPES_CREATE: "production.recipes.create",
-  PRODUCTION_RECIPES_EDIT: "production.recipes.edit",
-  PRODUCTION_BATCHES_VIEW: "production.batches.view",
-  PRODUCTION_BATCHES_CREATE: "production.batches.create",
-  PRODUCTION_BATCHES_COMPLETE: "production.batches.complete",
-  PRODUCTION_COST_VIEW: "production.cost.view",
-  PRODUCTION_DASHBOARD_VIEW: "production.dashboard.view",
 
   // ── Documentos e Impresión (FASE 3) ──
   DOCUMENT_PRINT: "document.print",
@@ -176,21 +118,17 @@ export type Capability = (typeof CAPABILITIES)[keyof typeof CAPABILITIES];
 
 const ALL_CAPABILITIES = Object.values(CAPABILITIES);
 
+const SYSTEM_ADMIN_ONLY: readonly Capability[] = [
+  CAPABILITIES.SYSTEM_ADMIN_ACCESS,
+  CAPABILITIES.SYSTEM_ADMIN_ROLE_CONFIG,
+  CAPABILITIES.SYSTEM_ADMIN_SETTINGS,
+];
+
 export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
-  SYSTEM_ADMIN: ALL_CAPABILITIES.filter(c => !c.startsWith("production.")),
-  OWNER: ALL_CAPABILITIES.filter(c => c !== CAPABILITIES.SYSTEM_ADMIN_ACCESS && c !== CAPABILITIES.SYSTEM_ADMIN_ROLE_CONFIG && c !== CAPABILITIES.SYSTEM_ADMIN_SETTINGS && !c.startsWith("production.")),
-  MASTER: ALL_CAPABILITIES.filter(c => c !== CAPABILITIES.SYSTEM_ADMIN_ACCESS && c !== CAPABILITIES.SYSTEM_ADMIN_ROLE_CONFIG && c !== CAPABILITIES.SYSTEM_ADMIN_SETTINGS),
+  SYSTEM_ADMIN: [...ALL_CAPABILITIES],
+  OWNER: ALL_CAPABILITIES.filter(c => !SYSTEM_ADMIN_ONLY.includes(c)),
+  MASTER: ALL_CAPABILITIES.filter(c => !SYSTEM_ADMIN_ONLY.includes(c)),
   BRANCH_ADMIN: [
-    CAPABILITIES.POS_VIEW,
-    CAPABILITIES.POS_SELL,
-    CAPABILITIES.POS_PRINT,
-    CAPABILITIES.POS_CREATE_DRAFT,
-    CAPABILITIES.POS_EDIT_DRAFT,
-    CAPABILITIES.POS_CANCEL_OWN_DRAFT,
-    CAPABILITIES.POS_SEND_TO_CASHIER,
-    CAPABILITIES.POS_DIRECT_COLLECT,
-    CAPABILITIES.POS_PRINT_QUOTE,
-    CAPABILITIES.POS_PRINT_DELIVERY_ORDER,
     CAPABILITIES.CASH_VIEW,
     CAPABILITIES.CASH_OPEN,
     CAPABILITIES.CASH_CHARGE,
@@ -218,48 +156,12 @@ export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     CAPABILITIES.OPERATING_EXPENSE_CREATE,
     // Finanzas de su sucursal (sin planilla: los salarios no se exponen a admin de sucursal).
     CAPABILITIES.FINANCE_VIEW,
-    CAPABILITIES.FINANCE_VIEW_PRICING,
     CAPABILITIES.FINANCE_MANAGE_EXPENSES,
-    // Fase 4 (prompt-motor-precios-lote-herencia-gobierno.md) — la sucursal
-    // ajusta libre DENTRO de la banda de su categoría; lo que se pasa sale
-    // a aprobación (no lo bloquea esta capability, lo decide el servicio).
-    //
-    // Parte C (prompt-huecos-fase1-fase3-despliegue.md) — IMPLICACIÓN DE
-    // DIVULGACIÓN: otorgar esto también da acceso a costo efectivo y margen
-    // resultante de ESA sucursal, vía GET /api/branch/pricing/product-context
-    // (branch-band-service.ts::getBranchPricingContextForProduct) — no se
-    // puede mostrar dónde cae un precio dentro de la banda sin mostrar el
-    // costo contra el que se mide. Ese endpoint está auditado y acotado a
-    // precio efectivo/costo efectivo/margen resultante/límites de la
-    // política de categoría de ESE producto en ESA sucursal — nunca costos
-    // de otras sucursales, márgenes agregados a nivel global, ni historial
-    // de ProductPricing. Si el acceso a costo por BRANCH_ADMIN deja de ser
-    // deseable, la alternativa es hacer que ese endpoint devuelva solo la
-    // posición relativa ("dentro de la banda" / "por debajo del mínimo")
-    // sin cifras — revisar ANTES de tocar esto de nuevo, revertir un
-    // permiso después de que alguien ya vio los números no deshace nada.
-    CAPABILITIES.PRICING_EDIT_BRANCH,
     CAPABILITIES.WAREHOUSE_VIEW,
     CAPABILITIES.DISPATCH_MARK,
-    CAPABILITIES.INVENTORY_VIEW,
-    CAPABILITIES.INVENTORY_ADJUST,
-    CAPABILITIES.SALES_DRAFT_MANAGE,
-    CAPABILITIES.SALES_SUBMIT_PAYMENT,
     // ── View capabilities ──
     CAPABILITIES.BRANCH_DASHBOARD_VIEW,
-    CAPABILITIES.BRANCH_CATALOG_VIEW,
-    CAPABILITIES.BRANCH_INVENTORY_VIEW,
     CAPABILITIES.SALES_VIEW,
-    CAPABILITIES.SALE_RETURN_REQUEST,
-    CAPABILITIES.SALE_RETURN_APPROVE,
-    CAPABILITIES.SALE_RETURN_EXECUTE,
-    CAPABILITIES.SALE_CANCELLATION_REQUEST,
-    CAPABILITIES.SALE_CANCELLATION_APPROVE,
-    CAPABILITIES.SALE_CANCELLATION_EXECUTE,
-    CAPABILITIES.CREDIT_NOTE_CREATE,
-    CAPABILITIES.CREDIT_NOTE_APPROVE,
-    CAPABILITIES.DAMAGED_INVENTORY_VIEW,
-    CAPABILITIES.DAMAGED_INVENTORY_ADJUST,
     CAPABILITIES.CASH_PAYMENTS_VIEW,
     CAPABILITIES.CASH_PAYMENTS_COLLECT,
     CAPABILITIES.CASH_SESSION_OPERATE,
@@ -271,7 +173,6 @@ export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     CAPABILITIES.OPERATIONAL_DAY_CLOSE,
     CAPABILITIES.OPERATIONAL_DAY_APPROVE_DELEGATE,
     CAPABILITIES.DISPATCH_VIEW,
-    // ── Production (view only for branch admin) ──
     // ── Governance & reporting ──
     CAPABILITIES.APPROVAL_REQUEST_CREATE,
     CAPABILITIES.APPROVAL_REQUEST_REVIEW,
@@ -289,8 +190,6 @@ export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
   COUNTER: [
     CAPABILITIES.BRANCH_DASHBOARD_VIEW,
     CAPABILITIES.SALES_VIEW,
-    CAPABILITIES.SALES_DRAFT_MANAGE,
-    CAPABILITIES.SALES_SUBMIT_PAYMENT,
     CAPABILITIES.APPROVAL_REQUEST_CREATE,
     // ── Courier (PASO R.1: viene de basePermissions del difunto permissions.ts) ──
     CAPABILITIES.CUSTOMER_CREATE,
@@ -321,11 +220,6 @@ export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     CAPABILITIES.BRANCH_DASHBOARD_VIEW,
     CAPABILITIES.CASH_PAYMENTS_VIEW,
     CAPABILITIES.CASH_PAYMENTS_COLLECT,
-    CAPABILITIES.SALE_RETURN_REQUEST,
-    CAPABILITIES.SALE_RETURN_EXECUTE,
-    CAPABILITIES.SALE_CANCELLATION_REQUEST,
-    CAPABILITIES.SALE_CANCELLATION_EXECUTE,
-    CAPABILITIES.CREDIT_NOTE_CREATE,
     CAPABILITIES.CASH_SESSION_OPERATE,
     CAPABILITIES.OPERATIONS_VIEW,
     CAPABILITIES.APPROVAL_REQUEST_CREATE,
@@ -379,15 +273,11 @@ export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     CAPABILITIES.FINANCE_MANAGE_EXPENSES,
     CAPABILITIES.FINANCE_VIEW_PAYROLL,
     CAPABILITIES.FINANCE_MANAGE_PAYROLL,
-    CAPABILITIES.FINANCE_VIEW_PRICING,
-    CAPABILITIES.FINANCE_MANAGE_PRICING,
     CAPABILITIES.FINANCE_REPORTS_EXPORT,
     // Capacidades de soporte que consumen los subpaneles de finanzas.
     CAPABILITIES.OPERATING_EXPENSE_VIEW,
     CAPABILITIES.OPERATING_EXPENSE_CREATE,
     CAPABILITIES.CASH_MOVEMENT_VIEW,
-    CAPABILITIES.PRICING_VIEW,
-    CAPABILITIES.PRICING_EDIT_GLOBAL,
     CAPABILITIES.REPORTS_EXPORT,
     // Historial de sus propias consultas/exportaciones.
     CAPABILITIES.SALES_HISTORY_VIEW,
