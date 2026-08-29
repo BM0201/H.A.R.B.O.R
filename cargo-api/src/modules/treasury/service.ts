@@ -1172,6 +1172,7 @@ const ROLE_CODE_LABELS: Record<RoleCode, string> = {
   CASHIER: "Cajero",
   WAREHOUSE_ORIGIN: "Bodega origen",
   WAREHOUSE_DESTINATION: "Bodega destino",
+  COURIER: "Repartidor",
   ACCOUNTANT: "Contador",
 };
 

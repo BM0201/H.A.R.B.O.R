@@ -23,6 +23,9 @@ enum RoleCode {
   /// Bodega DESTINO: consolida, libera y entrega. NUNCA puede escribir peso ni
   /// medidas (guard en servicio); una corrección post-consolidado exige aprobación.
   WAREHOUSE_DESTINATION
+  /// Última milla: entrega a domicilio con evidencia. Puede cobrar contra
+  /// entrega, lo que lo vuelve portador de efectivo en tránsito (PASO R.4).
+  COURIER
   ACCOUNTANT
 }
 

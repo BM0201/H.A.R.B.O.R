@@ -253,6 +253,17 @@ export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     CAPABILITIES.PACKAGE_RELEASE,
     CAPABILITIES.PACKAGE_DELIVER,
   ],
+  // Última milla (PASO R.2). Aguas abajo de la frontera antifraude: nunca pesa.
+  // El cobro contra entrega y la custodia se conceden en R.3/R.4.
+  COURIER: [
+    CAPABILITIES.BRANCH_DASHBOARD_VIEW,
+    CAPABILITIES.DISPATCH_VIEW,
+    CAPABILITIES.DISPATCH_MARK,
+    CAPABILITIES.PACKAGE_DELIVER,
+    CAPABILITIES.CUSTOMER_VIEW,
+    CAPABILITIES.APPROVAL_REQUEST_CREATE,
+    CAPABILITIES.DOCUMENT_PRINT,
+  ],
   // ─────────────────────────────────────────────────────────────
   // CONTADOR (ACCOUNTANT) — solo-contabilidad. Mantener en sync con backend.
   // ─────────────────────────────────────────────────────────────

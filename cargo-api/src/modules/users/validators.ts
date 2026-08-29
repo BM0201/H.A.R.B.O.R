@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const membershipSchema = z.object({
   branchId: z.string().min(1),
-  roleCode: z.enum(["BRANCH_ADMIN", "COUNTER", "CASHIER", "WAREHOUSE_ORIGIN", "WAREHOUSE_DESTINATION"]),
+  roleCode: z.enum(["BRANCH_ADMIN", "COUNTER", "CASHIER", "WAREHOUSE_ORIGIN", "WAREHOUSE_DESTINATION", "COURIER"]),
 });
 
 export const createUserSchema = z.object({
@@ -29,6 +29,6 @@ export const upsertMembershipSchema = membershipSchema.extend({
 });
 
 export const updateMembershipSchema = z.object({
-  roleCode: z.enum(["BRANCH_ADMIN", "COUNTER", "CASHIER", "WAREHOUSE_ORIGIN", "WAREHOUSE_DESTINATION"]).optional(),
+  roleCode: z.enum(["BRANCH_ADMIN", "COUNTER", "CASHIER", "WAREHOUSE_ORIGIN", "WAREHOUSE_DESTINATION", "COURIER"]).optional(),
   isActive: z.boolean().optional(),
 });

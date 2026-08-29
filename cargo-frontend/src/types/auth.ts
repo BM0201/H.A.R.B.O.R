@@ -9,6 +9,7 @@ export type RoleCode =
   | "CASHIER"
   | "WAREHOUSE_ORIGIN"
   | "WAREHOUSE_DESTINATION"
+  | "COURIER"
   | "ACCOUNTANT";
 
 export type BranchMembership = {

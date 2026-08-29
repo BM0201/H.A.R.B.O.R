@@ -272,6 +272,7 @@ export async function listBranchesForMembershipManagement() {
         CASHIER: configured.get("CASHIER") ?? true,
         WAREHOUSE_ORIGIN: configured.get("WAREHOUSE_ORIGIN") ?? true,
         WAREHOUSE_DESTINATION: configured.get("WAREHOUSE_DESTINATION") ?? true,
+        COURIER: configured.get("COURIER") ?? true,
       },
     };
   });
@@ -282,7 +283,7 @@ type NewMembership = {
   roleCode: Exclude<RoleCode, "MASTER" | "OWNER" | "SYSTEM_ADMIN" | "ACCOUNTANT">;
 };
 
-const BRANCH_MEMBERSHIP_ROLES: readonly RoleCode[] = ["BRANCH_ADMIN", "COUNTER", "CASHIER", "WAREHOUSE_ORIGIN", "WAREHOUSE_DESTINATION"];
+const BRANCH_MEMBERSHIP_ROLES: readonly RoleCode[] = ["BRANCH_ADMIN", "COUNTER", "CASHIER", "WAREHOUSE_ORIGIN", "WAREHOUSE_DESTINATION", "COURIER"];
 const PRIVILEGED_GLOBAL_ROLES: readonly RoleCode[] = ["MASTER", "OWNER", "SYSTEM_ADMIN"];
 
 function isBranchMembershipRole(roleCode: RoleCode): boolean {

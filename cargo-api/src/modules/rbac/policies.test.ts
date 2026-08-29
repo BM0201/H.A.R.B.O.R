@@ -29,3 +29,11 @@ test("rbac: MASTER tiene el catálogo courier completo; SYSTEM_ADMIN no autoriza
   assert.equal(can("MASTER", CAPABILITIES.CUSTOMS_CLEAR), true);
   assert.equal(can("MASTER", CAPABILITIES.SYSTEM_ADMIN_SETTINGS), false);
 });
+
+test("rbac: COURIER entrega y marca; aguas abajo de la frontera antifraude no pesa ni recibe", () => {
+  assert.equal(can("COURIER", CAPABILITIES.PACKAGE_DELIVER), true);
+  assert.equal(can("COURIER", CAPABILITIES.DISPATCH_MARK), true);
+  assert.equal(can("COURIER", CAPABILITIES.PACKAGE_MEASURE), false);
+  assert.equal(can("COURIER", CAPABILITIES.PACKAGE_RECEIVE), false);
+  assert.equal(can("COURIER", CAPABILITIES.PACKAGE_CONSOLIDATE), false);
+});

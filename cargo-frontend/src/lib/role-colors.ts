@@ -15,7 +15,7 @@
  * | WAREHOUSE     | #16A34A     | 4.51:1           | green    |
  */
 
-export type RoleColorKey = "system-admin" | "owner" | "master" | "branch-admin" | "counter" | "cashier" | "warehouse-origin" | "warehouse-destination" | "accountant";
+export type RoleColorKey = "system-admin" | "owner" | "master" | "branch-admin" | "counter" | "cashier" | "warehouse-origin" | "warehouse-destination" | "courier" | "accountant";
 
 export interface RoleColorConfig {
   key: RoleColorKey;
@@ -92,6 +92,16 @@ const ROLE_COLORS: Record<string, RoleColorConfig> = {
     label: "Bodega destino",
     cssPrefix: "warehouse",
     hex600: "#0891B2",
+    badgeClass: "hm-badge-warehouse",
+    sectionIconClass: "hm-section-icon-warehouse",
+  },
+  // PASO R.2. Color provisional (reusa la rampa "warehouse"); PASO 8 B.2.3
+  // retira todas las rampas de rol a grafito + ícono + etiqueta.
+  COURIER: {
+    key: "courier",
+    label: "Repartidor",
+    cssPrefix: "warehouse",
+    hex600: "#0D9488",
     badgeClass: "hm-badge-warehouse",
     sectionIconClass: "hm-section-icon-warehouse",
   },

@@ -260,6 +260,18 @@ export const ROLE_CAPABILITIES: Record<RoleCode, Capability[]> = {
     CAPABILITIES.PACKAGE_RELEASE,
     CAPABILITIES.PACKAGE_DELIVER,
   ],
+  /// Última milla (PASO R.2). Entrega a domicilio con evidencia. Aguas abajo de
+  /// la frontera antifraude: NUNCA pesa ni mide. El cobro contra entrega y la
+  /// custodia de efectivo se le conceden en R.3/R.4 (payment.collect + custody.*).
+  COURIER: [
+    CAPABILITIES.BRANCH_DASHBOARD_VIEW,
+    CAPABILITIES.DISPATCH_VIEW,
+    CAPABILITIES.DISPATCH_MARK,
+    CAPABILITIES.PACKAGE_DELIVER,
+    CAPABILITIES.CUSTOMER_VIEW,
+    CAPABILITIES.APPROVAL_REQUEST_CREATE,
+    CAPABILITIES.DOCUMENT_PRINT,
+  ],
   // ─────────────────────────────────────────────────────────────
   // CONTADOR (ACCOUNTANT) — rol global de solo-contabilidad.
   // Ve TODO el módulo de Finanzas & Contabilidad (resumen, gastos,

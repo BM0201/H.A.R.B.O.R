@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { apiFetch, unwrapApiData } from "@/lib/client/api";
 
-type RoleCode = "BRANCH_ADMIN" | "COUNTER" | "CASHIER" | "WAREHOUSE_ORIGIN" | "WAREHOUSE_DESTINATION";
+type RoleCode = "BRANCH_ADMIN" | "COUNTER" | "CASHIER" | "WAREHOUSE_ORIGIN" | "WAREHOUSE_DESTINATION" | "COURIER";
 
 type BranchRow = {
   id: string;
@@ -40,6 +40,7 @@ const ROLE_LABEL: Record<RoleCode, string> = {
   CASHIER: "Caja",
   WAREHOUSE_ORIGIN: "Bodega origen",
   WAREHOUSE_DESTINATION: "Bodega destino",
+  COURIER: "Repartidor",
 };
 
 function getMessage(payload: unknown, fallback: string) {
@@ -236,7 +237,7 @@ export function BranchesAdmin() {
           const usersByRole = branch.userBranchRoles.reduce<Record<RoleCode, typeof branch.userBranchRoles>>((acc, item) => {
             acc[item.roleCode] = [...(acc[item.roleCode] ?? []), item];
             return acc;
-          }, { BRANCH_ADMIN: [], COUNTER: [], CASHIER: [], WAREHOUSE_ORIGIN: [], WAREHOUSE_DESTINATION: [] });
+          }, { BRANCH_ADMIN: [], COUNTER: [], CASHIER: [], WAREHOUSE_ORIGIN: [], WAREHOUSE_DESTINATION: [], COURIER: [] });
           const busy = busyBranchId === branch.id;
 
           return (

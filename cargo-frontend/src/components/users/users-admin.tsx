@@ -30,7 +30,7 @@ import toast from "react-hot-toast";
 
 // Las contraseñas temporales las genera el servidor de forma única por usuario.
 
-type MembershipRole = "BRANCH_ADMIN" | "COUNTER" | "CASHIER" | "WAREHOUSE_ORIGIN" | "WAREHOUSE_DESTINATION";
+type MembershipRole = "BRANCH_ADMIN" | "COUNTER" | "CASHIER" | "WAREHOUSE_ORIGIN" | "WAREHOUSE_DESTINATION" | "COURIER";
 type BranchOption = {
   id: string;
   code: string;
@@ -74,6 +74,7 @@ const ROLE_LABEL: Record<string, string> = {
   CASHIER: "Caja",
   WAREHOUSE_ORIGIN: "Bodega origen",
   WAREHOUSE_DESTINATION: "Bodega destino",
+  COURIER: "Repartidor",
 };
 
 // Resumen informativo por rol — mantener alineado con cargo-api/src/modules/rbac/policies.ts (ROLE_CAPABILITIES).
@@ -95,6 +96,11 @@ const ROLE_CAPABILITY_HINTS: Record<MembershipRole, string[]> = {
   WAREHOUSE_DESTINATION: [
     "Consolida, libera y entrega paquetes",
     "NUNCA puede escribir peso ni medidas",
+  ],
+  COURIER: [
+    "Entrega a domicilio con evidencia (última milla)",
+    "Marca paquetes como entregados",
+    "El cobro contra entrega y la custodia de efectivo se habilitan aparte",
   ],
   BRANCH_ADMIN: [
     "Aprueba reclamos y correcciones de peso",
@@ -127,6 +133,12 @@ const USER_ROLE_PRESETS = [
     label: "Bodega destino",
     description: "Consolida, libera y entrega. No toca peso ni medidas.",
     roles: ["WAREHOUSE_DESTINATION"] as MembershipRole[],
+  },
+  {
+    value: "COURIER",
+    label: "Repartidor",
+    description: "Ultima milla: entrega a domicilio con evidencia.",
+    roles: ["COURIER"] as MembershipRole[],
   },
   {
     value: "BRANCH_ADMIN",

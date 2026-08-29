@@ -38,6 +38,7 @@ const BRANCH_ROLES: RoleCode[] = [
   RoleCode.CASHIER,
   RoleCode.WAREHOUSE_ORIGIN,
   RoleCode.WAREHOUSE_DESTINATION,
+  RoleCode.COURIER,
 ];
 
 async function seedBranchRoleConfig(branchId: string, actorUserId: string) {
@@ -140,6 +141,7 @@ async function main(): Promise<void> {
     { username: "cajero", fullName: "Cajero Demo", email: "cajero@cargo.local", branchId: dest.id, roles: [RoleCode.CASHIER] },
     { username: "bodega-origen", fullName: "Bodega Origen Demo", email: "bodega.origen@cargo.local", branchId: origin.id, roles: [RoleCode.WAREHOUSE_ORIGIN] },
     { username: "bodega-destino", fullName: "Bodega Destino Demo", email: "bodega.destino@cargo.local", branchId: dest.id, roles: [RoleCode.WAREHOUSE_DESTINATION] },
+    { username: "repartidor", fullName: "Repartidor Demo", email: "repartidor@cargo.local", branchId: dest.id, roles: [RoleCode.COURIER] },
     { username: "admin-agencia", fullName: "Admin de Agencia Demo", email: "admin.agencia@cargo.local", branchId: dest.id, roles: [RoleCode.BRANCH_ADMIN] },
   ];
   for (const du of demoUsers) {
@@ -226,7 +228,7 @@ async function main(): Promise<void> {
   console.log("✅ Seed CARGO completado.");
   console.log("   ──────────────────────────────────────────────");
   console.log(`   Master:        ${MASTER_USERNAME} / ${MASTER_PASSWORD}`);
-  console.log(`   Demo staff:    mostrador, cajero, bodega-origen, bodega-destino, admin-agencia, contador`);
+  console.log(`   Demo staff:    mostrador, cajero, bodega-origen, bodega-destino, repartidor, admin-agencia, contador`);
   console.log(`   Demo password: ${DEMO_PASSWORD}`);
   console.log(`   Cliente demo:  NIC-00001 (portal: cliente@example.com / ${DEMO_PASSWORD})`);
   console.log("   ──────────────────────────────────────────────");

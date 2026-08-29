@@ -31,6 +31,7 @@ const CONFIGURABLE_ROLES = [
   { code: "CASHIER", label: "Cajero", description: "Operaciones de caja y cobro" },
   { code: "WAREHOUSE_ORIGIN", label: "Bodega origen", description: "Recibe, pesa y mide paquetes" },
   { code: "WAREHOUSE_DESTINATION", label: "Bodega destino", description: "Consolida, libera y entrega" },
+  { code: "COURIER", label: "Repartidor", description: "Entrega a domicilio con evidencia" },
 ];
 
 export default function RoleConfigPage() {
