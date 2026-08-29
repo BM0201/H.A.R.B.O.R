@@ -145,6 +145,19 @@ export function toHttpErrorResponse(error: unknown) {
     if (error.message === "CASH_SESSION_REQUIRED") {
       return errJson("CASH_SESSION_REQUIRED", "Abrí una sesión de caja a tu nombre antes de cobrar.", 409);
     }
+    // PASO R.4 — custodia de efectivo en tránsito.
+    if (error.message === "UNCONFIRMED_CUSTODY_HANDOFF") {
+      return errJson("UNCONFIRMED_CUSTODY_HANDOFF", "Tenés efectivo entregado en persona que nadie confirmó haber recibido. No podés cerrar la jornada hasta que se confirme.", 409);
+    }
+    if (error.message === "CUSTODY_SELF_CONFIRM_FORBIDDEN") {
+      return errJson("FORBIDDEN", "Quien entrega el efectivo no puede confirmar su propia entrega.", 403);
+    }
+    if (error.message.startsWith("NO_PENDING_CUSTODY_HANDOFF")) {
+      return errJson("NOT_FOUND", "No hay una entrega de efectivo pendiente dirigida a vos en esa custodia.", 404);
+    }
+    if (error.message.startsWith("INVALID_CUSTODY_AMOUNT")) {
+      return errJson("VALIDATION_ERROR", error.message.replace(/^INVALID_CUSTODY_AMOUNT:\s?/, ""), 400);
+    }
     if (error.message === "OPERATIONAL_DAY_NOT_ACTIVE") {
       return errJson("CONFLICT", "El día operativo de esta sesión ya no está activo.", 409);
     }

@@ -7,6 +7,7 @@ import { getBranchCashPosition } from "@/modules/treasury/cash-monitor";
 import { logAuditEvent } from "@/modules/audit/service";
 import { approvalService } from "@/modules/approvals/service";
 import { APPROVAL_REQUEST_TYPES } from "@/modules/approvals/constants";
+import { custodyReceiptOutcome } from "@/modules/treasury/custody";
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
@@ -669,6 +670,142 @@ export async function confirmBankDeposit(input: {
     });
 
     return { deposit, transferId, remainderInCustody: remainder };
+  });
+}
+
+// ─── PASO R.4 — Confirmación de recepción de una entrega en persona ──────────
+
+/**
+ * El "recibí C$X de fulano" que le faltaba a `sendCashOutToCustody` (hueco #1
+ * de PENDIENTES.md). Espeja `confirmBankDeposit`: dos patas
+ * (`OUT` custodia del portador + `IN` custodia del receptor) con el mismo
+ * `transferId`, tipo `HANDOVER_CONFIRMED`.
+ *
+ * - Quien entrega NO confirma su propia entrega: `carrier.holderUserId !=
+ *   confirmedByUserId` (verificado acá, no solo en la UI).
+ * - Si el monto confirmado difiere del declarado al entregar → **DISPUTED**:
+ *   abre un `ApprovalRequest` (`OPERATION_OVERRIDE`) y **no** transfiere — el
+ *   saldo del portador queda sin cuadrar hasta que se resuelva.
+ * - Sin modelo nuevo: el saldo de la cuenta `CUSTODY` es el estado.
+ */
+export async function confirmCustodyReceipt(input: {
+  carrierCustodyAccountId: string;
+  branchId: string;
+  confirmedAmount: number;
+  confirmedByUserId: string;
+  notes?: string | null;
+}) {
+  if (input.confirmedAmount <= 0) {
+    throw new Error("INVALID_CUSTODY_AMOUNT: el monto confirmado debe ser mayor que 0");
+  }
+
+  const carrierCustody = await prisma.treasuryAccount.findUniqueOrThrow({
+    where: { id: input.carrierCustodyAccountId },
+    select: { id: true, type: true, holderUserId: true, branchId: true },
+  });
+  if (carrierCustody.type !== "CUSTODY") {
+    throw new Error("VALIDATION_ERROR: la cuenta de origen no es de custodia");
+  }
+  if (!carrierCustody.holderUserId) {
+    throw new Error("VALIDATION_ERROR: la custodia no tiene portador");
+  }
+  if (carrierCustody.holderUserId === input.confirmedByUserId) {
+    throw new Error("CUSTODY_SELF_CONFIRM_FORBIDDEN");
+  }
+
+  // La entrega pendiente: la última entrada HANDOVER de esta custodia dirigida
+  // a quien está confirmando. Su monto es lo que se declaró al entregar.
+  const pendingHandoff = await prisma.treasuryEntry.findFirst({
+    where: {
+      accountId: input.carrierCustodyAccountId,
+      entryType: "HANDOVER",
+      direction: "IN",
+      intendedRecipientUserId: input.confirmedByUserId,
+    },
+    orderBy: { occurredAt: "desc" },
+    select: { id: true, amount: true },
+  });
+  if (!pendingHandoff) {
+    throw new Error("NO_PENDING_CUSTODY_HANDOFF: no hay una entrega pendiente dirigida a vos en esta custodia");
+  }
+  const expectedAmount = round2(Number(pendingHandoff.amount));
+  const carrierBalanceBefore = await getTreasuryAccountBalance(input.carrierCustodyAccountId);
+
+  // ── DISPUTED — no transfiere, abre aprobación ──
+  if (custodyReceiptOutcome({ expectedAmount, confirmedAmount: input.confirmedAmount }) === "DISPUTED") {
+    const approval = await approvalService.createRequest({
+      type: APPROVAL_REQUEST_TYPES.OPERATION_OVERRIDE,
+      branchId: input.branchId,
+      referenceType: "TreasuryAccount",
+      referenceId: input.carrierCustodyAccountId,
+      reason: `Custodia disputada: se entregó C$${expectedAmount}, el receptor confirmó C$${input.confirmedAmount}`,
+      payloadJson: {
+        carrierUserId: carrierCustody.holderUserId,
+        confirmedByUserId: input.confirmedByUserId,
+        expectedAmount,
+        confirmedAmount: input.confirmedAmount,
+        carrierCustodyBalance: carrierBalanceBefore.balance,
+      },
+      requestedByUserId: input.confirmedByUserId,
+    });
+    await logAuditEvent({
+      actorUserId: input.confirmedByUserId,
+      branchId: input.branchId,
+      module: "treasury",
+      action: "CUSTODY_RECEIPT_DISPUTED",
+      entityType: "TreasuryAccount",
+      entityId: input.carrierCustodyAccountId,
+      metadataJson: {
+        carrierUserId: carrierCustody.holderUserId,
+        expectedAmount,
+        confirmedAmount: input.confirmedAmount,
+        approvalRequestId: approval.requestId,
+      },
+    });
+    return { disputed: true as const, approvalRequestId: approval.requestId, transferId: null };
+  }
+
+  if (input.confirmedAmount > carrierBalanceBefore.balance + 0.01) {
+    throw new Error(
+      `VALIDATION_ERROR: el monto confirmado (C$${input.confirmedAmount}) supera lo que hay en la custodia (C$${carrierBalanceBefore.balance})`,
+    );
+  }
+
+  // ── MATCH — transfiere del portador al receptor ──
+  return prisma.$transaction(async (tx) => {
+    const receiverCustody = await findOrCreateCustodyAccountTx(tx, {
+      holderUserId: input.confirmedByUserId,
+      branchId: carrierCustody.branchId ?? input.branchId,
+    });
+    const { transferId } = await createInternalTransferTx(tx, {
+      fromAccountId: input.carrierCustodyAccountId,
+      toAccountId: receiverCustody.id,
+      fromAmount: input.confirmedAmount,
+      entryType: "HANDOVER_CONFIRMED",
+      counterpartyType: "INTERNAL",
+      occurredAt: new Date(),
+      notes: input.notes ?? null,
+      createdByUserId: input.confirmedByUserId,
+    });
+
+    const remainder = round2(carrierBalanceBefore.balance - input.confirmedAmount);
+    await logAuditEvent({
+      actorUserId: input.confirmedByUserId,
+      branchId: input.branchId,
+      module: "treasury",
+      action: "CUSTODY_RECEIPT_CONFIRMED",
+      entityType: "TreasuryAccount",
+      entityId: input.carrierCustodyAccountId,
+      metadataJson: {
+        carrierUserId: carrierCustody.holderUserId,
+        receiverCustodyAccountId: receiverCustody.id,
+        confirmedAmount: input.confirmedAmount,
+        carrierBalanceBefore: carrierBalanceBefore.balance,
+        remainderInCarrierCustody: remainder,
+        transferId,
+      },
+    });
+    return { disputed: false as const, transferId, remainderInCarrierCustody: remainder };
   });
 }
 

@@ -6,6 +6,35 @@ import { resolveOperationalDayForOperationTx, refreshOperationalDaySummaryTx, ge
 import { resolveAutoCloseReview } from "@/modules/cash-session/review-policy";
 import { cashMovementsNetTotal, computeExpectedCash } from "@/modules/cash-session/expected-cash";
 import { createAutoDefaultedDeclarationTx } from "@/modules/treasury/service";
+import { netUnconfirmedPersonHandoff } from "@/modules/treasury/custody";
+
+/**
+ * PASO R.4.2 — efectivo entregado en persona que nadie confirmó haber recibido,
+ * a nombre de este usuario. Si es > 0 no puede cerrar su jornada: el control
+ * que hace que la plata vuelva. Los depósitos rumbo a un banco NO cuentan
+ * (esos los confirma Master con `confirmBankDeposit`, pueden quedar abiertos).
+ */
+async function netUnconfirmedPersonHandoffForUserTx(
+  tx: Prisma.TransactionClient,
+  userId: string,
+): Promise<number> {
+  const custody = await tx.treasuryAccount.findUnique({
+    where: { code: `CUSTODY-${userId}` },
+    select: { id: true },
+  });
+  if (!custody) return 0;
+  const entries = await tx.treasuryEntry.findMany({
+    where: { accountId: custody.id, entryType: { in: ["HANDOVER", "HANDOVER_CONFIRMED"] } },
+    select: { entryType: true, amount: true, intendedRecipientUserId: true },
+  });
+  return netUnconfirmedPersonHandoff(
+    entries.map((e) => ({
+      entryType: e.entryType,
+      amount: Number(e.amount),
+      hasIntendedRecipient: e.intendedRecipientUserId !== null,
+    })),
+  );
+}
 
 function toDecimal(value: number): Prisma.Decimal {
   return new Prisma.Decimal(value);
@@ -459,6 +488,13 @@ export async function requestCloseCashSession(input: {
 
     if (pendingPayments > 0) {
       throw new Error("CASH_SESSION_HAS_PENDING_PAYMENTS");
+    }
+
+    // PASO R.4.2 — custodia entregada en persona sin confirmar a nombre del
+    // que cierra: la jornada no cierra hasta que el receptor confirme.
+    const pendingCustody = await netUnconfirmedPersonHandoffForUserTx(tx, input.actorUserId);
+    if (pendingCustody > 0.01) {
+      throw Object.assign(new Error("UNCONFIRMED_CUSTODY_HANDOFF"), { pendingCustody });
     }
 
     const updated = await tx.cashSession.update({

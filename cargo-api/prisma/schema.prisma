@@ -2394,6 +2394,10 @@ enum TreasuryEntryType {
   CARD_FEE
   DEPOSIT_DISPATCH
   HANDOVER
+  /// PASO R.4 — el receptor confirmó una entrega en persona (HANDOVER). Cierra
+  /// el hueco de PENDIENTES.md #1: transfiere la custodia del portador al
+  /// receptor. Espeja DEPOSIT_DISPATCH → DEPOSIT_CONFIRMED.
+  HANDOVER_CONFIRMED
   RETAIN_TO_SAFE
   DEPOSIT_CONFIRMED
   SUPPLIER_PAYMENT
