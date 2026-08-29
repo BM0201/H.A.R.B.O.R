@@ -237,6 +237,55 @@ Spec: `docs/prompts/HARBOR-PASO-8-marca-identidad-y-seguridad.md`. No toca domin
 Pendiente cosmético relacionado: las rampas de rol en CSS todavía dicen `sales` y
 `warehouse` (el enum ya es `COUNTER` / `WAREHOUSE_ORIGIN` / `WAREHOUSE_DESTINATION`).
 
+---
+
+## PASO R — Roles, RBAC, custodia y cascarón de rutas (rama `harbor-paso-r`)
+
+Spec: `docs/prompts/HARBOR-PASO-R-roles-rbac-custodia.md` (versión corregida — la
+primera decía que había 2 catálogos RBAC; hay 3 y el limpio estaba muerto).
+**En una rama aparte**, `main` intacto.
+
+- **R.0 (`30a223c`)** — guarda del seed. `src/lib/seed-guard.ts`
+  `assertSeedTarget()` anclado a `127.0.0.1|localhost:5433/harbor_dev` (no
+  substring); `NODE_ENV=production` aborta sin escape; no imprime la URL. 6 tests.
+- **R.1a (`7a36229`)** — consolidación RBAC. Había 3 catálogos: `permissions.ts`
+  (courier-limpio, **0 rutas lo usaban**), `policies.ts` backend (vivo, stale),
+  `policies.ts` frontend (copia a mano). Mudadas las 24 claves courier a
+  `policies.ts`, eliminado `permissions.ts` + `guards.ts::hasPermission`.
+  `tests/unit-ts/rbac-parity.test.ts` (CI): falla si back≠front.
+- **R.1b (`4835f73`)** — poda de 56 capacidades de módulos amputados (pos,
+  inventory, production, purchases, transfers, sale-returns, pricing…). `−281`
+  líneas. `moduleFlags`/`ModuleFlags` sin los flags muertos. `policies.test.ts`
+  reescrito (probaba POS → ahora la frontera antifraude).
+- **R.2 (`5fdc9ed`)** — rol `COURIER` (última milla). Migración
+  `20260829184756_add_courier_role` (`ALTER TYPE "RoleCode" ADD VALUE`),
+  aplicada al Postgres local. 14 archivos (enum, validators, service, policies
+  back/front, frontend types/colors/admin, seed usuario "repartidor").
+  `resolveRoleHome` NO tocado — `COURIER` cae al default como `COUNTER`; el
+  mapeo completo va en R.5.
+- **R.3 (`9afac80`)** — cobrar es capacidad, no rol. Consolidadas las 4
+  capacidades de cobro en `payment.collect`. Nuevas: `delivery.handover/lastmile`,
+  `custody.handoff/receive`. Guard `payment-collection-guard.ts`:
+  `decideCollect()` puro — sin capacidad → 403, con capacidad y sin gaveta →
+  **409** (`CASH_SESSION_REQUIRED`). Aún sin ruta que cobre; contrato listo.
+
+### PASO R — lo que falta
+
+- **R.4** — `confirmCustodyReceipt` espejando `confirmBankDeposit` (sin modelo
+  nuevo — el saldo de la cuenta `CUSTODY` ya dice "en tránsito"). Regla: usuario
+  con saldo `CUSTODY` ≠ 0 a su nombre no cierra jornada. `DISPUTED` →
+  `ApprovalRequest`. `custody.receive` no se confirma a sí mismo.
+- **R.5** — cascarón de rutas de logística (`/app/warehouse/*`, `/app/shipments`,
+  `/app/customs`, `/app/branch/arrivals`, `/app/delivery`, `/app/customers`,
+  `/app/tracking`) + `resolveRoleHome` completo (cada rol a su home, ninguno al
+  default) + sidebar derivado de capacidades (hoy 30 `href` hardcodeados) +
+  estado vacío como documentación ("Bloqueado por: … / Requiere: …").
+- **R.6** — matriz semilla. `BranchRoleConfig` es rol×sucursal (boolean), NO
+  capacidad×sucursal → R.6 siembra la matriz por defecto a nivel código
+  (`ROLE_CAPABILITIES`); el override por sucursal es feature aparte.
+- **R.7** — tests restantes (los 10 roles aterrizan en su home; ítem de sidebar
+  sin capacidad falla el typecheck).
+
 ## Lo que sigue
 
 - **Bloqueado** hasta responder los 5 bloqueantes duros de
