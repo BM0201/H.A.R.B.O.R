@@ -29,6 +29,12 @@ Thumbs.db
 # Claude Code — configuración local de sesión (permisos), no versionar
 .claude/settings.local.json
 
+# impeccable — skill pack externo (se instala con `npx impeccable skills install`),
+# no se versiona; sí se versionan PRODUCT.md / DESIGN.md / .impeccable/config.json
+.claude/skills/
+.impeccable/*.cache.json
+.impeccable/config.local.json
+
 # dependency-cruiser
 .dependency-cruiser-cache
 arch-graph.svg
