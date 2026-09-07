@@ -213,6 +213,54 @@ async function main(): Promise<void> {
   });
   console.log(`  ✔ Customer "${customer.code}" + CustomerUser demo`);
 
+  // ── 6. Tarifario general (HARBOR PASO S.3) ─────────────────────────────────
+  // $6.00/lb aérea · $2.50/lb marítima. volumetricDivisor null → D-1 apagado
+  // (se decide con el dueño). effectiveFrom en el pasado para que resuelva ya.
+  const rateFrom = new Date("2026-01-01T00:00:00Z");
+  for (const [name, mode, price] of [
+    ["General aérea", "AIR", 6.0],
+    ["General marítima", "SEA", 2.5],
+  ] as const) {
+    const existing = await prisma.rateCard.findFirst({ where: { name, mode, customerId: null } });
+    if (!existing) {
+      await prisma.rateCard.create({
+        data: {
+          name,
+          mode,
+          pricePerLb: price,
+          minimumCharge: mode === "AIR" ? 5 : 0,
+          volumetricDivisor: null,
+          currency: "USD",
+          effectiveFrom: rateFrom,
+          createdByUserId: masterUser.id,
+        },
+      });
+    }
+  }
+  console.log("  ✔ RateCard general (AIR $6.00 · SEA $2.50)");
+
+  // ── 7. Pre-alertas demo para el cliente NIC-00001 (HARBOR PASO S.2) ────────
+  // Una aérea con tracking UPS, una marítima con tracking USPS. Sirven para
+  // probar el match en desarrollo (`/app/warehouse/receiving`).
+  for (const [carrier, tracking, mode, desc] of [
+    ["UPS", "1Z999AA10123456784", "AIR", "Auriculares (Amazon)"],
+    ["USPS", "9405503699300012345671", "SEA", "Repuestos varios (eBay)"],
+  ] as const) {
+    await prisma.preAlert.upsert({
+      where: { customerId_originTrackingNumber: { customerId: customer.id, originTrackingNumber: tracking } },
+      update: { mode, description: desc },
+      create: {
+        customerId: customer.id,
+        mode,
+        originCarrier: carrier,
+        originTrackingNumber: tracking,
+        description: desc,
+        declaredValue: mode === "AIR" ? 45 : 120,
+      },
+    });
+  }
+  console.log("  ✔ Pre-alertas demo (1 aérea UPS · 1 marítima USPS)");
+
   await prisma.auditLog.create({
     data: {
       actorUserId: masterUser.id,

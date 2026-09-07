@@ -81,11 +81,15 @@ test("rbac: la UI oculta, el servidor autoriza — CASHIER no tiene nada de bode
   }
 });
 
-// PASO R.5/R.6 — el guard "WAREHOUSE_DESTINATION nunca escribe weightLb/
-// chargeableLb" no existe todavía: no puede, porque `Package` no existe. Este
-// test reclama que exista el día que se cree el modelo (§12 pasos 2-6).
-test("frontera antifraude: guard de peso en servicio cuando exista Package", { todo: "bloqueado por el modelo Package (§12 pasos 2-6)" }, () => {
-  // Cuando exista: un WAREHOUSE_DESTINATION intentando escribir peso/medidas
-  // debe recibir 403 en el servicio, no solo tener el botón oculto.
-  assert.fail("implementar junto con Package.weightLb / chargeableLb");
+// PASO S — `Package` ya existe y el guard de peso ya está en la ruta
+// (`canMeasureAt` en modules/receiving/http-helpers, ejercido en
+// http-helpers.test.ts y en la ruta POST /api/receiving/packages/:id/measure).
+// Acá queda el ancla a nivel de catálogo: ni destino ni courier pesan.
+test("frontera antifraude: WAREHOUSE_DESTINATION y COURIER no pesan (guard en ruta, PASO S)", () => {
+  assert.equal(can("WAREHOUSE_DESTINATION", CAPABILITIES.PACKAGE_MEASURE), false);
+  assert.equal(can("COURIER", CAPABILITIES.PACKAGE_MEASURE), false);
+  assert.equal(can("WAREHOUSE_DESTINATION", CAPABILITIES.PACKAGE_MEASURE_CORRECT), false);
+  assert.equal(can("COURIER", CAPABILITIES.PACKAGE_MEASURE_CORRECT), false);
+  // solo bodega-origen pesa; corregir es de los globales superiores
+  assert.equal(can("WAREHOUSE_ORIGIN", CAPABILITIES.PACKAGE_MEASURE), true);
 });
