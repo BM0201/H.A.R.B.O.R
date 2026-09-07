@@ -1,14 +1,31 @@
 /**
- * Contexto: cargo  (confianza: Alta)
+ * Contexto `cargo` — API pública. AGREGADO RAÍZ (Package).
  *
- * AGREGADO RAÍZ. Paquete: medidas, peso, valor declarado, evidencias, y el LOG DE EVENTOS autoritativo (ADR-0005). El status es proyección. Depende del bloqueante #1.
- *
- * API PÚBLICA del contexto. Lo único importable desde otros contextos o desde
- * src/app/**. Nada de src/contexts/cargo/{domain,application,infrastructure,interfaces}
- * se importa directamente desde afuera (enforced en CI).
- *
- * Vacío a propósito: el modelado del dominio no arranca hasta cerrar el §12
- * paso 3 (ver docs/ARQUITECTURA-HARBOR.md).
+ * HARBOR PASO S expone sólo el núcleo puro del tramo de recepción: generación
+ * del `trackingCode` no enumerable, matemática de medición (D-1/D-2) y la
+ * máquina de estados acotada. La orquestación (casos de uso, HTTP, Prisma) del
+ * camino de recepción vive en el contexto `receiving`, que consume este índice.
  */
 
-export {};
+export {
+  generateTrackingCode,
+  isWellFormedTrackingCode,
+  TRACKING_ALPHABET,
+  TRACKING_CODE_LENGTH,
+} from "@/contexts/cargo/domain/tracking-code";
+
+export {
+  computeVolumetricLb,
+  computeChargeableLb,
+  computeWeightVariance,
+  isWeightVarianceFlagged,
+  WEIGHT_VARIANCE_FLAG_THRESHOLD,
+  type Dimensions,
+} from "@/contexts/cargo/domain/measurement";
+
+export {
+  canTransition,
+  assertTransition,
+  isUnowned,
+  type PackageStatus,
+} from "@/contexts/cargo/domain/package-status";
