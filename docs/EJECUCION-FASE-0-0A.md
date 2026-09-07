@@ -303,13 +303,52 @@ nuevas: `add_courier_role`, `custody_receipt_confirmed`. Sin ruta HTTP para
 `confirmCustodyReceipt` ni para el cobro courier (van con el módulo de última
 milla, que depende de `Package`).
 
+---
+
+## PASO S — Receiving, escáner y match de pre-alerta (rama `harbor-paso-s`)
+
+Spec: `docs/prompts/HARBOR-PASO-S-receiving-y-escaner.md`. Primer vertical slice
+del §12 paso 9. **Rama desde `harbor-paso-r`** (S depende de R; R sin mergear).
+Crea el agregado `Package`, acotado al camino de recepción.
+
+- **Decisiones D-1/D-2** — registradas en `PRODUCT.md` como abiertas del dueño,
+  con el comportamiento interino del código: capturar L/W/H siempre y cobrar
+  sobre peso real (`volumetricDivisor` null en todas las tarifas); guardar ambos
+  pesos, facturar el de origen, `weightVariance` + flag cuando |Δ| > 5%.
+- **ADR-0005/0006** aceptados acotados a Cargo (registrado en
+  `ARQUITECTURA-HARBOR.md`). Bloqueantes #1 y #2 resueltos con insumo del dueño.
+- **S.1 (`7d5435b`)** — schema: `Package`, `PreAlert`, `RateCard`,
+  `CargoTimelineEntry` (seq monótono, `@@unique(packageId, seq)`), `OutboxEvent`
+  + `OutboxDelivery`, `CustomerNotification`, `ReceivingQueueItem`.
+  `enum PackageStatus { PRE_ALERTED RECEIVED_ORIGIN ORPHAN }`. Migración
+  `20260907120000_receiving_package_slice` generada offline con `migrate diff`
+  (no hay DB local) — aplica con `prisma migrate deploy`.
+- **S.2/S.3 puro (`c0507dc`)** — contextos hexagonales `cargo`, `rating`,
+  `receiving` (arch:check verde). `generateTrackingCode` no enumerable;
+  `normalizeCarrierTracking` (IMpb / 1Z / FedEx / TBA); `decideMatch`
+  (llave = tracking, nombre PROHIBIDO); `resolveRate` + `computeQuote`
+  (`max(real, volumétrico) × tarifa`, piso mínimo, sin tarifa → error).
+- **Rutas + infra + outbox (`34f1fbb`)** — `prisma-receiving-repository`
+  (Package + timeline + outbox en una `$tx`); despachador de outbox con store
+  inyectable + cron cada 5 min; consumidor `package_received` →
+  `CustomerNotification` (queda `QUEUED`). Rutas `/api/receiving/**` y
+  `/api/rating/rate-cards`. Pesar → 403 para `WAREHOUSE_DESTINATION`/`COURIER`.
+- **Tests (`8ba31b7` + guard)** — 66 tests nuevos: normalización, match, tabla
+  de cotización (12 casos), `trackingCode` no secuencial, D-1/D-2, dispatcher
+  idempotente, `receivePackage` con repo falso. El `test.todo` de PASO R sobre
+  el guard de peso pasa a test real.
+- **Seed + frontend** — `RateCard` general + 2 pre-alertas demo;
+  `/app/warehouse/receiving` (escanear→pesar→recibir) y `/app/warehouse/orphans`
+  (bandeja + asignación manual) dejan de ser `RouteShell`.
+
+**Fuera de alcance (sin cambios):** consolidación/embarque/aduana/entrega;
+reconciliación de los dos pesajes (D-2); política de huérfanos no reclamados;
+ingesta automática desde WhatsApp; canal real de notificación.
+
 ## Lo que sigue
 
-- **Bloqueado** hasta responder los 5 bloqueantes duros de
-  `docs/ARQUITECTURA-HARBOR.md` (sobre todo el #1, modelo de casillero): pasos
-  §12 2–6 y 8–9 (mapa de procesos, modelo de dominio, catálogo de eventos,
-  máquinas de estado, matriz de permisos, mapeo Prisma, primer vertical slice de
-  Receiving).
-- Fase 0 pasos 0.3–0.8 del prompt original (Customer/Casillero, `Package` +
-  máquina de estados, Shipment/prorrateo, tarifario, `CustomerAnalytics` RFM,
-  Brain LOYALTY, vista 360).
+- **Bloqueante #3 (pago previo al embarque)** — confirmar antes del paso de
+  consolidación: define si la cotización de recepción se vuelve precondición.
+- Consolidación → Shipment/prorrateo → aduana → arribo → distribución → entrega,
+  cada uno su paso. `CustomerAnalytics` RFM, Brain LOYALTY, vista 360.
+- El resto de los 5 bloqueantes duros para cerrar el modelo de dominio (§12 3-6).
