@@ -25,8 +25,8 @@ inmediato.
 | 0002 | Monolito modular, no microservicios | **ACEPTADO** |
 | 0003 | Arquitectura hexagonal por módulo + enforcement en CI | **ACEPTADO** |
 | 0004 | Stack Next.js + Prisma + PostgreSQL | **ACEPTADO** |
-| 0005 | El evento es la verdad; el estado es proyección | PENDIENTE — a discutir |
-| 0006 | Outbox transaccional para eventos de dominio | PENDIENTE — a discutir |
+| 0005 | El evento es la verdad; el estado es proyección | **ACEPTADO (acotado a Cargo/Delivery, proyección síncrona)** — PASO S |
+| 0006 | Outbox transaccional para eventos de dominio | **ACEPTADO (contrato + despachador por cron)** — PASO S |
 
 ### ADR-0002 — Monolito modular (ACEPTADO)
 Un solo deploy, una sola base de datos. Bounded contexts como módulos de frontera
@@ -83,6 +83,14 @@ reconstruir recorriendo eventos.
 en la misma transacción, sin CQRS. Revisar extensión a otros agregados cuando
 cada uno tenga su máquina de estados (§12 paso 5).
 
+**Resolución (PASO S, 2026-09-07):** ACEPTADO acotado a Cargo. `Package.status` y
+`Package.locationId` son proyección; toda transición del camino de recepción
+escribe un `CargoTimelineEntry` inmutable (con `seq` monótono por paquete) en la
+**misma transacción** que el cambio de estado. Sin CQRS, sin event store
+genérico — la tabla es append-only por convención de la capa `application`, no
+por trigger. La extensión a Shipment/Consolidation/Delivery se decide cuando cada
+uno tenga su máquina de estados.
+
 ### ADR-0006 — Outbox transaccional (A DISCUTIR)
 **Propuesta:** eventos a tabla `outbox` en la misma tx que el cambio de estado;
 un despachador los publica after-commit hacia consumidores (notificaciones,
@@ -102,6 +110,17 @@ proyecciones, integraciones). Entrega *at-least-once* → consumidores idempoten
 escribe ahí en la tx; formato del payload; regla de idempotencia) y **diferir el
 despachador** hasta el primer consumidor real (probablemente notificaciones en
 Fase 1).
+
+**Resolución (PASO S, 2026-09-07):** ACEPTADO. `OutboxEvent` se escribe en la
+misma tx que el cambio de estado. El despachador corre por **cron de Vercel**
+(`/api/system/cron/outbox-dispatch`, junto al de automatización operativa),
+entrega *at-least-once* y marca `processedAt`. Idempotencia en dos capas:
+`OutboxDelivery(eventId, consumer)` con `@@unique` evita reprocesar por
+consumidor, y cada consumidor además deduplica por su propia llave natural
+(p. ej. `CustomerNotification.dedupeKey`). Primer consumidor real:
+`receiving.package_received.v1` → `CustomerNotification`. El canal de salida real
+(WhatsApp/SMS/email) sigue fuera de alcance — el consumidor deja la notificación
+en estado `QUEUED`.
 
 ---
 
@@ -166,14 +185,23 @@ Sin estas, el modelo de dominio (§12 paso 5) no puede cerrarse. El **paso 7**
 (esqueleto + regla de CI) sí puede avanzar en paralelo — y es lo que se está
 haciendo.
 
-1. **Modelo de casillero.** ¿Dirección propia en USA a nombre del cliente, o
-   BM CARGO recibe de remitentes conocidos hacia destinatarios? → decide si
-   `Cliente`/`Remitente`/`Destinatario` son 1 o 3 partes. Cambia el agregado raíz de Cargo.
-2. **Identificación en recepción.** ¿Número de casillero en la etiqueta /
-   pre-alerta / manifiesto / resolución manual? → define si existe `PreAlert` y el
-   flujo de paquetes huérfanos.
+1. **Modelo de casillero.** ~~¿Dirección propia en USA a nombre del cliente, o
+   BM CARGO recibe de remitentes conocidos hacia destinatarios?~~ **RESUELTO
+   (PASO S, insumo del dueño):** una sola dirección física en USA (7792 NW 71st
+   ST, Doral FL 33166); el cliente rotula al comprar con `AirBmCargo`/`MarBmCargo`
+   + su nombre. El cliente es **una** parte; el "remitente" es la tienda (se
+   captura como `originCarrier` + `originTrackingNumber`). Agregado raíz `Package`
+   con `customerId` opcional (null mientras es `ORPHAN`).
+2. **Identificación en recepción.** ~~¿Número de casillero en la etiqueta /
+   pre-alerta / manifiesto / resolución manual?~~ **RESUELTO (PASO S):** la llave
+   del match es el **tracking del carrier de origen** (impreso y en código de
+   barras), no el nombre ni el casillero. Existe `PreAlert` (el cliente la carga
+   con el tracking). Match por nombre **prohibido**. Sin pre-alerta que reclame →
+   `ORPHAN` con bandeja de trabajo y asignación manual auditada.
 3. **Momento del cobro.** ¿Se puede embarcar sin pagar? → si no, el pago es
    precondición de transición y Billing se vuelve bloqueante del flujo central.
+   **Sigue abierto** — PASO S calcula la cotización en la recepción pero no cobra;
+   la precondición de pago para embarcar se decide antes del PASO de consolidación.
 4. **Alcance de aduana.** ¿Despacho directo / agente externo / consolidado sin
    declaración por paquete? → contexto completo vs un par de campos de estado.
 5. **Relación real con HAMMER.** ¿Misma empresa que el POS de ferretería? →
@@ -197,9 +225,9 @@ pasa con un paquete que nadie retira — cargo por almacenaje/abandono?
 | 4 | Catálogo de eventos de dominio con payload y consumidores | Bloqueado por (3) |
 | 5 | Máquinas de estado por agregado, transiciones prohibidas | Bloqueado por (3) |
 | 6 | Matriz de permisos por actor y ubicación | Bloqueado por (3) |
-| **7** | **Esqueleto del monorepo + regla de dependencias en CI** | **EN CURSO** |
-| 8 | Esquema de persistencia y mapeo dominio↔Prisma | Bloqueado por (3) |
-| 9 | Primer vertical slice: Receiving completo, HTTP → base | Bloqueado por (7)(8) |
+| **7** | **Esqueleto del monorepo + regla de dependencias en CI** | **HECHO** (PASO 7) |
+| 8 | Esquema de persistencia y mapeo dominio↔Prisma | Parcial — `Package`/`PreAlert`/`RateCard` acotados a recepción (PASO S); el resto sigue bloqueado por (3) |
+| 9 | Primer vertical slice: Receiving completo, HTTP → base | **HECHO acotado a recepción** (PASO S): escáner → match por tracking → pesaje → cotización → outbox. Consolidación/embarque/aduana/entrega en sus pasos |
 
 ---
 

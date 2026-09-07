@@ -88,7 +88,7 @@ the money is reconciled at the end of every operational day.
   read aloud, typed, and cross-checked all day, in both warehouses and at the
   counter.
 - **Roles.** `SYSTEM_ADMIN, OWNER, MASTER, BRANCH_ADMIN, COUNTER, CASHIER,
-  WAREHOUSE_ORIGIN, WAREHOUSE_DESTINATION, ACCOUNTANT`.
+  WAREHOUSE_ORIGIN, WAREHOUSE_DESTINATION, COURIER, ACCOUNTANT`.
 - **Two densities.** Counter and office use want comfortable spacing; warehouse
   and high-volume list views want a compact mode.
 
@@ -133,6 +133,19 @@ contexts) alongside a frozen `src/modules/**` (legacy, flat, direct Prisma).
   only shares conventions.
 - Internal rack/bin warehouse locations; corporate (non-end-customer) cargo;
   abandoned-package / storage-charge policy.
+- **D-1 — volumetric weight.** Is the customer billed on actual weight or on
+  `max(actual, volumetric)`? At $6/lb air, a large light box loses money without
+  a volumetric floor. *Interim, until the owner decides:* receiving **always**
+  captures length/width/height (cheap to take, expensive to recover later) and
+  the quote is computed on **actual weight only** — `RateCard.volumetricDivisor`
+  is `null` on the seeded cards, which switches the volumetric term off in the
+  pure calculation. Turning it on is a data change, not a code change.
+- **D-2 — discrepancy between the two weighings.** Origin weighs 4.0 lb, customs
+  re-weighs 4.8 lb — which one bills? *Interim, until the owner decides:* store
+  **both** (`weightOriginLb`, `weightCustomsLb`), bill on **origin** (what was
+  quoted to the customer), and set `weightVariance = (customs - origin) / origin`
+  plus a flag on the package when it exceeds **5%**. No re-billing path is built
+  yet; reconciliation waits on this decision.
 
 ## Brand Commitments
 
