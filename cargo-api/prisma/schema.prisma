@@ -34,6 +34,15 @@ enum TransportMode {
   SEA
 }
 
+/// Máquina de estados del paquete — HARBOR PASO S sólo modela el tramo de
+/// recepción. El resto del recorrido (CONSOLIDATED, IN_TRANSIT, IN_CUSTOMS,
+/// AVAILABLE, DELIVERED, RETURNED/LOST/DAMAGED) llega en sus pasos.
+enum PackageStatus {
+  PRE_ALERTED /// el cliente avisó, aún no llega físicamente
+  RECEIVED_ORIGIN /// recibido y pesado en la bodega de origen (Doral)
+  ORPHAN /// llegó sin pre-alerta que lo reclame — bandeja de trabajo, asignación manual
+}
+
 enum CarrierType {
   AIRLINE
   SHIPPING_LINE
@@ -319,6 +328,8 @@ model Branch {
   cashDestinationDeclarations CashDestinationDeclaration[]
   depositPolicy               BranchDepositPolicy?
   cashDepositPostponements    CashDepositPostponement[]
+  packagesReceivedAtOrigin    Package[]                    @relation("PackageOriginBranch")
+  receivingQueueItems         ReceivingQueueItem[]
 }
 
 model User {
@@ -389,6 +400,10 @@ model User {
   presences                  UserPresence[]
   cashDepositPostponements   CashDepositPostponement[]
   intendedCashHandovers      TreasuryEntry[]              @relation("TreasuryEntryIntendedRecipient")
+  receivedPackages           Package[]                    @relation("PackageReceivedBy")
+  cargoTimelineEntries       CargoTimelineEntry[]         @relation("CargoTimelineActor")
+  createdRateCards           RateCard[]                   @relation("RateCardCreatedBy")
+  capturedReceivingQueue     ReceivingQueueItem[]         @relation("ReceivingQueueCapturedBy")
 
   @@index([globalRole, isActive])
 }
@@ -610,6 +625,10 @@ model Customer {
   brainDecisions    BrainDecision[]
   transportServices TransportService[]
   customerUser      CustomerUser?
+  packages          Package[]
+  preAlerts         PreAlert[]
+  rateCards         RateCard[]
+  notifications     CustomerNotification[]
 }
 
 model CustomerBranchScope {
@@ -1581,6 +1600,245 @@ model Carrier {
 
   @@index([name])
   @@index([isActive])
+}
+
+/**
+ * ════════════════════════════════════════════════════════════════
+ * CARGO / RECEIVING (HARBOR PASO S) — primer vertical slice del §12 paso 9.
+ * Agregado `Package` acotado al camino de recepción: escáner → match por
+ * tracking de carrier → pesaje → cotización. `status` y `locationId` son
+ * PROYECCIÓN de `CargoTimelineEntry` (ADR-0005, proyección síncrona en la
+ * misma tx). Todo cambio de estado escribe además un `OutboxEvent` (ADR-0006).
+ * ════════════════════════════════════════════════════════════════
+ */
+
+model Package {
+  id           String        @id @default(cuid())
+  /// Identificador público, NO enumerable (PASO 8 E.1). Alfabeto sin caracteres
+  /// ambiguos (sin 0/O/1/I/L), 6 caracteres, generado por rechazo criptográfico.
+  trackingCode String        @unique
+  customerId   String? /// null mientras es ORPHAN
+  status       PackageStatus
+  mode         TransportMode
+
+  /// Sucursal de origen donde se recibió (Doral/MIA). Necesaria para el scope
+  /// del guard de peso y para el ApprovalRequest de corrección — no está en la
+  /// etiqueta, la pone el operador que recibe.
+  originBranchId String?
+
+  // ── llave del match ──
+  /// Tracking del carrier de origen (USPS/UPS/FedEx/Amazon). LA LLAVE DEL MATCH.
+  originCarrier        String?
+  /// Normalizado (dígitos/patrón del carrier extraídos). `@unique`: dos paquetes
+  /// no pueden reclamar el mismo tracking — lo impide la base, no el código.
+  originTrackingNumber String? @unique
+  /// Lo que se leyó en la etiqueta, tal cual, sin normalizar. Evidencia.
+  labelRecipientRaw    String?
+
+  // ── medición en origen ──
+  weightOriginLb Decimal?
+  lengthIn       Decimal?
+  widthIn        Decimal?
+  heightIn       Decimal?
+  volumetricLb   Decimal? /// calculado (D-1) — hoy siempre sobre divisor null → 0
+  chargeableLb   Decimal? /// el que factura (D-1) — hoy = weightOriginLb
+  /// Procedencia del peso: "SCALE" (báscula conectada) | "MANUAL" (tecleado).
+  /// La frontera antifraude necesita distinguirlos en una auditoría futura.
+  weightSource   String?
+
+  // ── medición en aduana (D-2) — se llena en el paso de aduana ──
+  weightCustomsLb       Decimal?
+  weightVariance        Decimal? /// (customs - origin) / origin
+  weightVarianceFlagged Boolean  @default(false) /// true si |variance| > 5%
+
+  // ── cotización (S.3) — calculada en recepción, NO cobrada ──
+  quoteRateCardId String?
+  quotePricePerLb Decimal?
+  quoteSubtotal   Decimal?
+  quoteCurrency   CurrencyCode?
+
+  declaredValue    Decimal?
+  receivedAt       DateTime?
+  receivedByUserId String?
+  /// FK suelta a `Location` (aún no existe — bloqueante #7/#8). Sin relación.
+  locationId       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer     Customer?            @relation(fields: [customerId], references: [id])
+  originBranch Branch?              @relation("PackageOriginBranch", fields: [originBranchId], references: [id])
+  receivedBy   User?                @relation("PackageReceivedBy", fields: [receivedByUserId], references: [id])
+  preAlert     PreAlert?
+  timeline     CargoTimelineEntry[]
+  queueItems   ReceivingQueueItem[]
+
+  @@index([customerId, status])
+  @@index([status, locationId])
+  @@index([originTrackingNumber])
+  @@index([status, createdAt])
+}
+
+/// Aviso anticipado del cliente: "compré esto, va en camino". Hoy se carga a
+/// mano o por portal (la ingesta desde WhatsApp es un paso propio). La llave del
+/// match con el paquete físico es `originTrackingNumber` normalizado.
+model PreAlert {
+  id                   String        @id @default(cuid())
+  customerId           String
+  mode                 TransportMode /// declarada por el cliente — se contrasta con el prefijo de la etiqueta
+  originCarrier        String?
+  originTrackingNumber String
+  declaredValue        Decimal?
+  description          String?
+  /// Captura de compra que el cliente envía (dirección, medio de pago parcial).
+  /// Clave del bucket PRIVADO, nunca una URL pública (PASO 8 E.2 / PASO S S.6).
+  proofKey             String?
+  matchedAt            DateTime?
+  packageId            String?       @unique
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id])
+  package  Package? @relation(fields: [packageId], references: [id])
+
+  /// Un cliente no pre-alerta el mismo tracking dos veces.
+  @@unique([customerId, originTrackingNumber])
+  @@index([originTrackingNumber, matchedAt])
+}
+
+/// Tarifario por modalidad. Resolución: tarifa especial del cliente vigente →
+/// tarifa general vigente de la modalidad → error explícito (nunca cobrar 0).
+/// Editar exige `rate.edit` (OWNER / BRANCH_ADMIN / superiores); todo cambio a
+/// `AuditLog` con el valor anterior.
+model RateCard {
+  id                String        @id @default(cuid())
+  name              String
+  mode              TransportMode
+  pricePerLb        Decimal /// 6.00 aérea · 2.50 marítima
+  minimumCharge     Decimal       @default(0)
+  volumetricDivisor Decimal? /// null = sin volumétrico (D-1). Hoy null en todas.
+  currency          CurrencyCode  @default(USD)
+  isActive          Boolean       @default(true)
+  effectiveFrom     DateTime
+  effectiveTo       DateTime?
+  /// null = tarifa general. Con valor = tarifa especial de ese cliente.
+  customerId        String?
+  createdByUserId   String
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  customer  Customer? @relation(fields: [customerId], references: [id])
+  createdBy User      @relation("RateCardCreatedBy", fields: [createdByUserId], references: [id])
+
+  @@index([mode, isActive, effectiveFrom])
+  @@index([customerId, mode, isActive])
+}
+
+/// ADR-0005 — log autoritativo del paquete. `Package.status`/`locationId` son
+/// proyección de estas filas. Append-only por convención de la capa
+/// `application` (no hay trigger). `seq` es monótono por paquete.
+model CargoTimelineEntry {
+  id          String   @id @default(cuid())
+  packageId   String
+  seq         Int
+  eventType   String /// PACKAGE_RECEIVED · MODE_MISMATCH_FLAGGED · WEIGHED · MEASURE_CORRECTION_REQUESTED · ORPHAN_ASSIGNED · QUOTED
+  payloadJson Json?
+  actorUserId String?
+  occurredAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  package Package @relation(fields: [packageId], references: [id])
+  actor   User?   @relation("CargoTimelineActor", fields: [actorUserId], references: [id])
+
+  @@unique([packageId, seq])
+  @@index([packageId, occurredAt])
+  @@index([eventType, occurredAt])
+}
+
+/// ADR-0006 — outbox transaccional. Se escribe en la misma tx que el cambio de
+/// estado; el despachador (`/api/system/cron/outbox-dispatch`) publica
+/// after-commit, at-least-once. `processedAt` != null = ya despachado.
+model OutboxEvent {
+  id            String    @id @default(cuid())
+  eventType     String /// "receiving.package_received.v1"
+  aggregateType String /// "Package"
+  aggregateId   String
+  payloadJson   Json
+  occurredAt    DateTime  @default(now())
+  processedAt   DateTime?
+  attempts      Int       @default(0)
+  lastError     String?
+  createdAt     DateTime  @default(now())
+
+  deliveries OutboxDelivery[]
+
+  @@index([processedAt, occurredAt])
+  @@index([aggregateType, aggregateId])
+}
+
+/// Idempotencia por consumidor: `@@unique(eventId, consumer)` impide reprocesar
+/// el mismo evento en el mismo consumidor aunque el despachador lo reintente.
+model OutboxDelivery {
+  id          String   @id @default(cuid())
+  eventId     String
+  consumer    String
+  deliveredAt DateTime @default(now())
+
+  event OutboxEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, consumer])
+}
+
+/// Salida del primer consumidor del outbox (`receiving.package_received.v1`).
+/// El canal real (WhatsApp/SMS/email) está fuera de alcance — queda `QUEUED`.
+/// `dedupeKey` `@unique` = segunda capa de idempotencia por llave natural.
+model CustomerNotification {
+  id         String    @id @default(cuid())
+  customerId String
+  channel    String    @default("PENDING")
+  kind       String /// "PACKAGE_RECEIVED"
+  subjectRef String? /// packageId
+  body       String
+  status     String    @default("QUEUED") /// QUEUED | SENT | FAILED
+  dedupeKey  String    @unique
+  createdAt  DateTime  @default(now())
+  sentAt     DateTime?
+
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@index([customerId, status])
+}
+
+/// S.5 — captura offline en la nave metálica. Encola tracking/peso/dimensiones/
+/// foto y marca `PENDING_MATCH`; el match corre en SERVIDOR al sincronizar
+/// (offline NUNCA auto-asigna: sin red no se consulta la pre-alerta ni se
+/// garantiza el `@unique` del tracking). `offlineClientId` dedupe por device.
+model ReceivingQueueItem {
+  id                String    @id @default(cuid())
+  offlineClientId   String    @unique
+  capturedByUserId  String
+  originBranchId    String?
+  rawBarcode        String
+  weightOriginLb    Decimal?
+  lengthIn          Decimal?
+  widthIn           Decimal?
+  heightIn          Decimal?
+  /// Clave del bucket PRIVADO de la foto (no URL pública — S.6).
+  photoKey          String?
+  labelRecipientRaw String?
+  weightSource      String?
+  capturedAt        DateTime /// cuándo se escaneó en el device (puede ser offline)
+  status            String    @default("PENDING_MATCH") /// PENDING_MATCH | MATCHED | ORPHANED | FAILED
+  packageId         String?
+  processedAt       DateTime?
+  lastError         String?
+  createdAt         DateTime  @default(now())
+
+  capturedBy   User     @relation("ReceivingQueueCapturedBy", fields: [capturedByUserId], references: [id])
+  originBranch Branch?  @relation(fields: [originBranchId], references: [id])
+  package      Package? @relation(fields: [packageId], references: [id])
+
+  @@index([status, capturedAt])
 }
 
 /**
