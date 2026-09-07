@@ -6,6 +6,9 @@ export const APPROVAL_REQUEST_TYPES = {
   PRICE_OVERRIDE: "PRICE_OVERRIDE",
   CREDIT_EXCEPTION: "CREDIT_EXCEPTION",
   TRANSFER_EXCEPTION: "TRANSFER_EXCEPTION",
+  /// HARBOR PASO S.3 — corrección de peso/medidas post-recepción (frontera
+  /// antifraude, PASO R.6). Coincide con el enum Prisma `ApprovalType`.
+  PACKAGE_MEASURE_CORRECTION: "PACKAGE_MEASURE_CORRECTION",
 } as const;
 
 export const APPROVAL_DECISIONS = {
