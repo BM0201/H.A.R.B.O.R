@@ -40,6 +40,7 @@ import {
   Camera,
   PiggyBank,
   Package,
+  PackageSearch,
   Boxes,
   Layers,
   Ship,
@@ -66,6 +67,7 @@ type LogisticsRoute = { href: Route; label: string; icon: LucideIcon; capability
 
 const LOGISTICS_ROUTES: readonly LogisticsRoute[] = [
   { href: "/app/warehouse/receiving", label: "Recepción en origen", icon: Package, capability: CAPABILITIES.PACKAGE_RECEIVE },
+  { href: "/app/warehouse/orphans", label: "Bandeja de huérfanos", icon: PackageSearch, capability: CAPABILITIES.PACKAGE_RECEIVE },
   { href: "/app/warehouse/stock", label: "Paquetes en bodega", icon: Boxes, capability: CAPABILITIES.WAREHOUSE_VIEW },
   { href: "/app/warehouse/consolidation", label: "Consolidados", icon: Layers, capability: CAPABILITIES.PACKAGE_CONSOLIDATE },
   { href: "/app/shipments", label: "Embarques", icon: Ship, capability: CAPABILITIES.SHIPMENT_VIEW },
