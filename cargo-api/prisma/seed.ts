@@ -20,8 +20,14 @@ import { assertSeedTarget, SeedGuardError } from "../src/lib/seed-guard";
 
 const prisma = new PrismaClient();
 
+// FASE DEMO — una sola contraseña universal para TODOS los usuarios del seed
+// (master incluido) y sin cambio de contraseña forzado. Este seed es dev-only
+// (lo garantiza `assertSeedTarget`); `seed-production.ts` conserva su propia
+// lógica segura y no se toca.
+const DEMO_PASSWORD = process.env.DEMO_USERS_PASSWORD ?? "Cargo1234!";
+
 const MASTER_USERNAME = process.env.MASTER_INITIAL_USERNAME ?? "master";
-const MASTER_PASSWORD = process.env.MASTER_INITIAL_PASSWORD ?? "Dev@Seed#2024!LocalOnly";
+const MASTER_PASSWORD = process.env.MASTER_INITIAL_PASSWORD ?? DEMO_PASSWORD;
 const MASTER_EMAIL = "master@cargo.local";
 const MASTER_FULLNAME = "System Master";
 
@@ -29,8 +35,6 @@ const ORIGIN_CODE = "MIA";
 const ORIGIN_NAME = "Miami Hub (origen)";
 const DEST_CODE = "MGA";
 const DEST_NAME = "Managua Central (destino)";
-
-const DEMO_PASSWORD = process.env.DEMO_USERS_PASSWORD ?? "Cargo1234!";
 
 const BRANCH_ROLES: RoleCode[] = [
   RoleCode.BRANCH_ADMIN,
@@ -69,6 +73,8 @@ async function main(): Promise<void> {
   console.log(`  ✔ Agencia "${origin.name}" (${origin.code})`);
 
   // ── 2. Master user ─────────────────────────────────────────────────────────
+  // FASE DEMO: el seed SIEMPRE fija la contraseña universal y NO fuerza cambio.
+  const masterHash = hashPassword(MASTER_PASSWORD);
   const masterUser = await prisma.user.upsert({
     where: { username: MASTER_USERNAME },
     update: {
@@ -76,17 +82,16 @@ async function main(): Promise<void> {
       email: MASTER_EMAIL,
       globalRole: RoleCode.MASTER,
       isActive: true,
-      ...(process.env.RESET_MASTER_PASSWORD === "true"
-        ? { passwordHash: hashPassword(MASTER_PASSWORD), mustChangePassword: true }
-        : {}),
+      passwordHash: masterHash,
+      mustChangePassword: false,
     },
     create: {
       username: MASTER_USERNAME,
       fullName: MASTER_FULLNAME,
       email: MASTER_EMAIL,
       globalRole: RoleCode.MASTER,
-      passwordHash: hashPassword(MASTER_PASSWORD),
-      mustChangePassword: true,
+      passwordHash: masterHash,
+      mustChangePassword: false,
       isActive: true,
     },
   });
@@ -147,7 +152,15 @@ async function main(): Promise<void> {
   for (const du of demoUsers) {
     const user = await prisma.user.upsert({
       where: { username: du.username },
-      update: { fullName: du.fullName, email: du.email, isActive: true, globalRole: null },
+      // FASE DEMO: re-seed idempotente — siempre re-fija la contraseña universal.
+      update: {
+        fullName: du.fullName,
+        email: du.email,
+        isActive: true,
+        globalRole: null,
+        passwordHash: demoHash,
+        mustChangePassword: false,
+      },
       create: {
         username: du.username,
         fullName: du.fullName,
@@ -171,7 +184,14 @@ async function main(): Promise<void> {
   // Contador (rol global de solo-contabilidad).
   await prisma.user.upsert({
     where: { username: "contador" },
-    update: { fullName: "Contador Demo", email: "contador@cargo.local", isActive: true, globalRole: RoleCode.ACCOUNTANT },
+    update: {
+      fullName: "Contador Demo",
+      email: "contador@cargo.local",
+      isActive: true,
+      globalRole: RoleCode.ACCOUNTANT,
+      passwordHash: demoHash,
+      mustChangePassword: false,
+    },
     create: {
       username: "contador",
       fullName: "Contador Demo",
@@ -352,9 +372,10 @@ async function main(): Promise<void> {
 
   console.log("✅ Seed CARGO completado.");
   console.log("   ──────────────────────────────────────────────");
-  console.log(`   Master:        ${MASTER_USERNAME} / ${MASTER_PASSWORD}`);
-  console.log(`   Demo staff:    mostrador, cajero, bodega-origen, bodega-destino, repartidor, admin-agencia, contador`);
-  console.log(`   Demo password: ${DEMO_PASSWORD}`);
+  console.log("   FASE DEMO — contraseña ÚNICA para todos los usuarios:");
+  console.log(`     usuarios:  ${MASTER_USERNAME}, mostrador, cajero, bodega-origen, bodega-destino,`);
+  console.log(`                repartidor, admin-agencia, contador`);
+  console.log(`     contraseña: ${DEMO_PASSWORD}   (sin cambio forzado)`);
   console.log(`   Cliente demo:  NIC-00001 y NIC-00002 (portal: código de un solo uso → CustomerNotification)`);
   console.log("   ──────────────────────────────────────────────");
 }

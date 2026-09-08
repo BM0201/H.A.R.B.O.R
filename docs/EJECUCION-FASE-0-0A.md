@@ -178,8 +178,11 @@ cd cargo-api
 npx prisma migrate deploy   # aplica el baseline ya versionado
 npm run db:seed
 ```
-Credenciales demo: `master / Dev@Seed#2024!LocalOnly` · resto `Cargo1234!` ·
-cliente portal `cliente@example.com / Cargo1234!`.
+Credenciales demo (FASE DEMO): **contraseña única `Cargo1234!` para TODOS** los
+usuarios del seed (`master` incluido), sin cambio forzado. El portal del cliente
+entra por código de un solo uso (se lee de `CustomerNotification`, `kind='PORTAL_CODE'`).
+Para producción usar `npm run db:seed:prod` (`seed-production.ts`), que conserva
+su propia lógica segura.
 
 ---
 
