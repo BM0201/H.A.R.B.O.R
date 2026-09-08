@@ -177,11 +177,19 @@ export async function authenticate(
   return { token, role: derivedRole, mustChangePassword: user.mustChangePassword, session: payload, fullName: user.fullName };
 }
 
+// El nombre de la cookie lleva el prefijo `__Host-`, que por RFC 6265bis EXIGE
+// el atributo `Secure` siempre — una cookie `__Host-*` sin `Secure` es inválida
+// y el navegador la descarta (rompía el login en dev local sobre http://). Los
+// navegadores aceptan cookies `Secure` sobre `http://localhost` / `127.0.0.1`
+// (origen "potentially trustworthy"), así que `secure: true` fijo funciona en
+// dev y es lo correcto en producción.
+const SESSION_COOKIE_SECURE = true;
+
 export async function setSessionCookie(token: string): Promise<void> {
   const store = await cookies();
   store.set(makeSessionCookieName(), token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: SESSION_COOKIE_SECURE,
     sameSite: "lax",
     path: "/",
     maxAge: env.AUTH_SESSION_TTL_HOURS * 60 * 60, // Match token TTL
@@ -192,7 +200,7 @@ export async function clearSessionCookie(): Promise<void> {
   const store = await cookies();
   store.set(makeSessionCookieName(), "", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: SESSION_COOKIE_SECURE,
     sameSite: "lax",
     path: "/",
     maxAge: 0,
