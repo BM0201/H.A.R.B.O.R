@@ -34,13 +34,23 @@ enum TransportMode {
   SEA
 }
 
-/// Máquina de estados del paquete — HARBOR PASO S sólo modela el tramo de
-/// recepción. El resto del recorrido (CONSOLIDATED, IN_TRANSIT, IN_CUSTOMS,
-/// AVAILABLE, DELIVERED, RETURNED/LOST/DAMAGED) llega en sus pasos.
+/// Máquina de estados del paquete (PRODUCT.md lifecycle). HARBOR PASO S modeló
+/// el tramo de recepción; PASO U agrega el recorrido completo con transiciones
+/// MANUALES (POST /api/packages/:id/advance) — la lógica real de consolidación,
+/// embarque, aduana y distribución llega en sus pasos. `status` es proyección
+/// del `CargoTimelineEntry` (ADR-0005).
 enum PackageStatus {
   PRE_ALERTED /// el cliente avisó, aún no llega físicamente
   RECEIVED_ORIGIN /// recibido y pesado en la bodega de origen (Doral)
   ORPHAN /// llegó sin pre-alerta que lo reclame — bandeja de trabajo, asignación manual
+  CONSOLIDATED /// agrupado para un embarque
+  IN_TRANSIT /// viajando (aéreo/marítimo)
+  IN_CUSTOMS /// detenido en aduana Nicaragua
+  AVAILABLE /// disponible para retiro en una sucursal (arranca el reloj de almacenaje)
+  DELIVERED /// entregado al cliente / a quien retira
+  RETURNED /// devuelto
+  LOST /// extraviado
+  DAMAGED /// dañado
 }
 
 enum CarrierType {
@@ -329,7 +339,9 @@ model Branch {
   depositPolicy               BranchDepositPolicy?
   cashDepositPostponements    CashDepositPostponement[]
   packagesReceivedAtOrigin    Package[]                    @relation("PackageOriginBranch")
+  packagesCurrentlyHere       Package[]                    @relation("PackageCurrentBranch")
   receivingQueueItems         ReceivingQueueItem[]
+  counterVisits               CounterVisit[]
 }
 
 model User {
@@ -404,6 +416,8 @@ model User {
   cargoTimelineEntries       CargoTimelineEntry[]         @relation("CargoTimelineActor")
   createdRateCards           RateCard[]                   @relation("RateCardCreatedBy")
   capturedReceivingQueue     ReceivingQueueItem[]         @relation("ReceivingQueueCapturedBy")
+  computedPackageQuotes      PackageQuote[]               @relation("PackageQuoteComputedBy")
+  counterVisits              CounterVisit[]
 
   @@index([globalRole, isActive])
 }
@@ -629,6 +643,8 @@ model Customer {
   preAlerts         PreAlert[]
   rateCards         RateCard[]
   notifications     CustomerNotification[]
+  authChallenges    CustomerAuthChallenge[]
+  counterVisits     CounterVisit[]
 }
 
 model CustomerBranchScope {
@@ -742,8 +758,10 @@ model SaleOrderLine {
   id             String   @id @default(cuid())
   saleOrderId    String
   description    String
-  /// FK a Package — se conecta la relación en 0.4 (Package aún no existe).
+  /// FK a Package — una línea de factura de HARBOR apunta a un paquete, no a un producto.
   packageId      String?
+  /// Snapshot de cotización que se facturó (PASO U.3). Reimprimir lee esto, no la tarifa vigente.
+  packageQuoteId String?
   quantity       Decimal
   unitPrice      Decimal
   discountAmount Decimal  @default(0)
@@ -757,7 +775,9 @@ model SaleOrderLine {
   storageAmount  Decimal  @default(0)
   createdAt      DateTime @default(now())
 
-  saleOrder SaleOrder @relation(fields: [saleOrderId], references: [id])
+  saleOrder    SaleOrder     @relation(fields: [saleOrderId], references: [id])
+  package      Package?      @relation(fields: [packageId], references: [id])
+  packageQuote PackageQuote? @relation(fields: [packageQuoteId], references: [id])
 
   @@index([saleOrderId])
   @@index([packageId])
@@ -857,6 +877,7 @@ model DispatchTicketPackage {
   packageId        String
 
   dispatchTicket DispatchTicket @relation(fields: [dispatchTicketId], references: [id], onDelete: Cascade)
+  package        Package        @relation(fields: [packageId], references: [id])
 
   @@unique([dispatchTicketId, packageId])
   @@index([packageId])
@@ -1663,20 +1684,101 @@ model Package {
   /// FK suelta a `Location` (aún no existe — bloqueante #7/#8). Sin relación.
   locationId       String?
 
+  // ── recorrido posterior (PASO U — transiciones manuales) ──
+  /// Sucursal donde el paquete está físicamente AHORA. En RECEIVED_ORIGIN es la
+  /// bodega de origen; cambia al distribuir a una sucursal de Nicaragua.
+  currentBranchId String?
+  /// Cuándo pasó a AVAILABLE — arranca el reloj de días libres de almacenaje.
+  availableAt     DateTime?
+  deliveredAt     DateTime?
+  /// Snapshot de cotización vigente para facturar (PASO U.3). Inmutable: si la
+  /// tarifa cambia mañana, la factura de hoy sigue leyendo este snapshot.
+  currentQuoteId  String?   @unique
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  customer     Customer?            @relation(fields: [customerId], references: [id])
-  originBranch Branch?              @relation("PackageOriginBranch", fields: [originBranchId], references: [id])
-  receivedBy   User?                @relation("PackageReceivedBy", fields: [receivedByUserId], references: [id])
-  preAlert     PreAlert?
-  timeline     CargoTimelineEntry[]
-  queueItems   ReceivingQueueItem[]
+  customer               Customer?               @relation(fields: [customerId], references: [id])
+  originBranch           Branch?                 @relation("PackageOriginBranch", fields: [originBranchId], references: [id])
+  currentBranch          Branch?                 @relation("PackageCurrentBranch", fields: [currentBranchId], references: [id])
+  receivedBy             User?                   @relation("PackageReceivedBy", fields: [receivedByUserId], references: [id])
+  currentQuote           PackageQuote?           @relation("PackageCurrentQuote", fields: [currentQuoteId], references: [id])
+  preAlert               PreAlert?
+  timeline               CargoTimelineEntry[]
+  queueItems             ReceivingQueueItem[]
+  quotes                 PackageQuote[]          @relation("PackageQuotes")
+  dispatchTicketPackages DispatchTicketPackage[]
+  saleOrderLines         SaleOrderLine[]
 
   @@index([customerId, status])
   @@index([status, locationId])
   @@index([originTrackingNumber])
   @@index([status, createdAt])
+  @@index([currentBranchId, status])
+}
+
+/// Snapshot INMUTABLE de una cotización de flete (PASO U.3 / lo que el MD llama
+/// "PackageQuote de PASO T.5"). Se crea cada vez que se (re)pesa un paquete; la
+/// factura apunta a un id concreto para que reimprimirla no cambie el monto
+/// aunque la tarifa vigente sea otra.
+model PackageQuote {
+  id               String        @id @default(cuid())
+  packageId        String
+  rateCardId       String?
+  mode             TransportMode
+  pricePerLb       Decimal
+  chargeableLb     Decimal
+  volumetricLb     Decimal       @default(0)
+  freightSubtotal  Decimal
+  storageAmount    Decimal       @default(0)
+  categoryAmount   Decimal       @default(0)
+  currency         CurrencyCode  @default(USD)
+  computedAt       DateTime      @default(now())
+  computedByUserId String?
+
+  package        Package         @relation("PackageQuotes", fields: [packageId], references: [id])
+  currentFor     Package?        @relation("PackageCurrentQuote")
+  computedBy     User?           @relation("PackageQuoteComputedBy", fields: [computedByUserId], references: [id])
+  saleOrderLines SaleOrderLine[]
+
+  @@index([packageId, computedAt])
+}
+
+/// PASO U.0 — reto de autenticación del portal del cliente. El número de
+/// casillero IDENTIFICA; este código de un solo uso AUTORIZA. 6 dígitos, vence
+/// a los 10 min, máximo 5 intentos, un solo uso. El código se guarda hasheado.
+model CustomerAuthChallenge {
+  id            String    @id @default(cuid())
+  customerId    String
+  codeHash      String
+  /// Hash del IP que lo solicitó — límite de tasa por IP sin guardar el IP crudo.
+  requestIpHash String?
+  attempts      Int       @default(0)
+  consumedAt    DateTime?
+  expiresAt     DateTime
+  createdAt     DateTime  @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@index([customerId, createdAt])
+  @@index([expiresAt])
+}
+
+/// PASO U.2 — casilleros atendidos recientemente en un mostrador, para el
+/// acceso rápido al caso repetido (el cliente vuelve / varios paquetes en tandas).
+model CounterVisit {
+  id         String   @id @default(cuid())
+  branchId   String
+  customerId String
+  userId     String
+  at         DateTime @default(now())
+
+  branch   Branch   @relation(fields: [branchId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@index([branchId, at])
+  @@index([customerId, at])
 }
 
 /// Aviso anticipado del cliente: "compré esto, va en camino". Hoy se carga a
