@@ -1,11 +1,11 @@
 /**
  * Contexto `cargo` — API pública. AGREGADO RAÍZ (Package).
  *
- * HARBOR PASO S expone sólo el núcleo puro del tramo de recepción: generación
- * del `trackingCode` no enumerable, matemática de medición (D-1/D-2) y la
- * máquina de estados acotada. La orquestación (casos de uso, HTTP, Prisma) del
- * camino de recepción vive en el contexto `receiving`, que consume este índice.
+ * PASO S expuso el núcleo puro del tramo de recepción. PASO U agrega la máquina
+ * de estados completa y el caso de uso de transición manual.
  */
+import { createAdvancePackage } from "@/contexts/cargo/application/advance-package";
+import { createPrismaCargoRepository } from "@/contexts/cargo/infrastructure/prisma-cargo-repository";
 
 export {
   generateTrackingCode,
@@ -26,6 +26,20 @@ export {
 export {
   canTransition,
   assertTransition,
+  nextStatuses,
+  transitionEffects,
   isUnowned,
+  isTerminal,
+  HAPPY_PATH,
+  TERMINAL,
   type PackageStatus,
 } from "@/contexts/cargo/domain/package-status";
+
+export type { AdvanceCommand, AdvancedPackage } from "@/contexts/cargo/application/advance-package";
+
+let _advance: ReturnType<typeof createAdvancePackage> | null = null;
+
+export function advancePackage(cmd: Parameters<ReturnType<typeof createAdvancePackage>>[0]) {
+  if (!_advance) _advance = createAdvancePackage({ repo: createPrismaCargoRepository() });
+  return _advance(cmd);
+}
