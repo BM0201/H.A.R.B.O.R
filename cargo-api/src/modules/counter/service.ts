@@ -30,6 +30,15 @@ const money = (d: Prisma.Decimal | null, c: string | null) =>
 
 const CASILLERO_RE = /^[A-Z]{2,4}-?\d{3,6}$/i;
 
+/** Clasificación PURA de la consulta del mostrador — sin base de datos. */
+export function classifyCounterQuery(q: string): "casillero" | "tracking" | "name" | "too-short" {
+  const query = q.trim();
+  if (query.length < 2) return "too-short";
+  if (CASILLERO_RE.test(query)) return "casillero";
+  if (/\d/.test(query) && query.replace(/\s/g, "").length >= 8) return "tracking";
+  return "name";
+}
+
 export type CounterSearchResult =
   | { kind: "casillero"; customerId: string }
   | { kind: "package"; customerId: string | null; trackingCode: string; packageTrackingCode: string }
