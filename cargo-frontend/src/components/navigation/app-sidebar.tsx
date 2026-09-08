@@ -55,7 +55,9 @@ import type { LucideIcon } from "lucide-react";
 /* ────────────────────────────────────────────────────────────── */
 
 type NavSection = { title: string; items: NavItem[] };
-type NavItem = { href: string; label: string; icon: LucideIcon; capabilities?: readonly string[] };
+// PASO U.5 — `href: Route`: typedRoutes hace que un href a una ruta inexistente
+// NO compile. Ningún ítem nuevo entra sin `capabilities` (salvo los raíz por rol).
+type NavItem = { href: Route; label: string; icon: LucideIcon; capabilities?: readonly Capability[] };
 
 /**
  * PASO R.5 — nav de logística, derivada del catálogo de capacidades.

@@ -1,6 +1,7 @@
 "use client";
 
 import { OperationalDayPanel } from "@/components/operations/operational-day-panel";
+import { LogisticsOverviewBranch } from "@/components/dashboard/logistics-overview";
 import { LoadingState } from "@/components/ui/loading-state";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ShieldAlert } from "lucide-react";
@@ -38,5 +39,10 @@ export default function BranchOperationsPage() {
     );
   }
 
-  return <OperationalDayPanel branchId={branchId} />;
+  return (
+    <div>
+      <LogisticsOverviewBranch branchId={branchId} />
+      <OperationalDayPanel branchId={branchId} />
+    </div>
+  );
 }

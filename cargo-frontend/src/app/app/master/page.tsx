@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LogisticsOverviewMaster } from "@/components/dashboard/logistics-overview";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import toast from "react-hot-toast";
 import {
@@ -1608,6 +1609,9 @@ export default function MasterCommandCenterPage() {
 
   return (
     <section className="space-y-6 animate-fade-in-up">
+
+      {/* ── PASO U.4 — Panorama logístico: lo primero es dónde están los paquetes ── */}
+      <LogisticsOverviewMaster />
 
       {/* ── Indicador en vivo — compacto, no título (el título vive en el chrome "Centro Master") ── */}
       <div className="flex items-center gap-3">

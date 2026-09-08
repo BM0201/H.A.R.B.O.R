@@ -9,6 +9,7 @@ import {
 } from "@/modules/operations/day-summary";
 import { getCashToleranceConfig, resolveCashToleranceForBranch } from "@/modules/operations/cash-tolerance-config";
 import { attachAuditToError, writePendingAuditFromError } from "@/modules/audit/service";
+import { logisticsCloseAttention } from "@/modules/logistics-dashboard/day-close";
 
 const TIMEZONE = OPERATIONAL_TIMEZONE;
 
@@ -148,9 +149,16 @@ export async function confirmOperationalDay(input: {
     const cashDifferenceToleranceAmount = resolveCashToleranceForBranch(toleranceConfig, fresh.branchId);
     const checklist = buildChecklist(summary, cashDifferenceToleranceAmount);
 
+    // PASO U.4 — un día HARBOR no cierra LIMPIO con retiros sin cobro/crédito ni
+    // con entregas sin evidencia. Ítems de atención: exigen nota, no bloquean.
+    const { start, end } = operationalWindow(fresh.businessDate);
+    const logistics = await logisticsCloseAttention(tx, { branchId: fresh.branchId, start, end });
+    const logisticsAttention =
+      logistics.unpaidHandovers > 0 || logistics.handoversWithoutEvidence > 0;
+
     // Los ítems en atención NUNCA impiden confirmar — solo exigen que quede
     // una nota escrita justificándolos.
-    if (checklist.attention.length > 0 && !input.note?.trim()) {
+    if ((checklist.attention.length > 0 || logisticsAttention) && !input.note?.trim()) {
       throw new Error("OPERATIONAL_DAY_CONFIRM_NOTE_REQUIRED");
     }
 
