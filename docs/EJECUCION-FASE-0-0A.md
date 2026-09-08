@@ -352,3 +352,54 @@ ingesta automática desde WhatsApp; canal real de notificación.
 - Consolidación → Shipment/prorrateo → aduana → arribo → distribución → entrega,
   cada uno su paso. `CustomerAnalytics` RFM, Brain LOYALTY, vista 360.
 - El resto de los 5 bloqueantes duros para cerrar el modelo de dominio (§12 3-6).
+
+---
+
+## PASO U — Portal del cliente, mostrador y tableros (rama `harbor-paso-u`)
+
+Spec: `docs/prompts/HARBOR-PASO-U-portal-mostrador-y-tableros.md`. **Rama desde
+`harbor-paso-s`.** El MD referencia PASO T (`PackageQuote`) que no existe: se usó
+el snapshot congelado al facturar. El recorrido posterior a la recepción se
+agregó con transiciones MANUALES (decisión del dueño en la ejecución).
+
+- **Schema (`21a3f13`)** — `PackageStatus` completo (+ CONSOLIDATED, IN_TRANSIT,
+  IN_CUSTOMS, AVAILABLE, DELIVERED, RETURNED/LOST/DAMAGED); `Package`
+  +currentBranchId/availableAt/deliveredAt/currentQuoteId; `PackageQuote`
+  (snapshot inmutable); `CustomerAuthChallenge` (OTP del portal);
+  `CounterVisit`; `DispatchTicketPackage`→FK real a `Package`;
+  `SaleOrderLine`+packageQuoteId. Migración `20260908120000_portal_counter_lifecycle`.
+- **Máquina de estados (`19faa10`)** — `cargo/domain/package-status` recorrido
+  completo + efectos de proyección; `cargo/application+infrastructure`
+  `advancePackage` (valida, actualiza proyección, timeline + outbox);
+  `POST /api/packages/:id/advance` — puente manual, guard `package.status.override`.
+- **Portal (`90c86fa`)** — U.0: `modules/portal` (challenge 6 díg/10 min/5
+  intentos hasheado; session `__Host-cargo_portal_session` revocable; magic-link
+  HMAC 7 días; service con respuesta+latencia constantes y límite por casillero/IP;
+  código a `CustomerNotification`). Rutas `/api/portal/auth/*` fuera del gate de
+  staff. U.1: `/api/portal/{casillero,paquete/[codigo]}` scoped por sesión, sin
+  PII; pantallas `/portal/*` móvil-primero + `<EstadoPaquete>` + timeline.
+- **Mostrador + facturación (`6650789`)** — U.2: `counterSearch` (casillero /
+  tracking / nombre por forma — buscar por nombre acá SÍ va), casillero view
+  multi-select, `CounterVisit` recientes, `counterHandover` (DispatchTicket +
+  AVAILABLE→DELIVERED, registra quién retira, `allowUnpaid` con crédito).
+  U.3: `contexts/billing` — `buildFreightInvoice` puro; `billFreightForPickup`
+  congela un `PackageQuote` por paquete; `getFreightInvoice` lee del snapshot,
+  nunca del `RateCard` vigente. Cobrar → `assertCanCollectPayment` (409 sin caja).
+  `/app/branch/dispatch` deja de ser RouteShell.
+- **Tableros + cierre de día + nav (`9be3251`)** — U.4:
+  `masterLogisticsOverview` / `branchLogisticsOverview` + `<LogisticsOverview*>`
+  arriba del Centro de Comando y del panel del día. `confirmOperationalDay`: no
+  cierra limpio con retiros sin cobro/crédito ni entregas sin evidencia (ítems
+  de atención). U.5: `NavItem.href: Route` (typedRoutes ⇒ href muerto no compila).
+- **Tests (`4797878`)** — 36 puros: challenge, magic-link, freight-invoice,
+  package-status, advance-package, query-shape del mostrador.
+- **Seed (`…`)** — NIC-00002 + 7 paquetes demo por el recorrido.
+
+**Verde:** cargo-api tsc + 697 tests + arch:check (484 módulos) + migración;
+cargo-frontend tsc + lint + `next build` + unit + logic.
+
+**Fuera de alcance / diferido:** canal real de WhatsApp/SMS (código queda en
+`CustomerNotification`); registro de clientes en el portal (lo crea BM CARGO);
+estimados de llegada (sin histórico por lane); consolidación/embarque/aduana/
+distribución reales (transición manual entretanto); firma real en la entrega
+(campo `signatureUrl` listo, captura no).
