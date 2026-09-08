@@ -261,6 +261,83 @@ async function main(): Promise<void> {
   }
   console.log("  ✔ Pre-alertas demo (1 aérea UPS · 1 marítima USPS)");
 
+  // ── 8. Segundo cliente + paquetes demo por el recorrido (PASO U) ───────────
+  const customer2 = await prisma.customer.upsert({
+    where: { code: "NIC-00002" },
+    update: { displayName: "Bayardo Mendoza", legalName: "Bayardo Mendoza Ruiz", isActive: true, phone: "+505 8888 1234" },
+    create: {
+      code: "NIC-00002",
+      legalName: "Bayardo Mendoza Ruiz",
+      displayName: "Bayardo Mendoza",
+      email: "bayardo@example.com",
+      phone: "+505 8888 1234",
+      isActive: true,
+    },
+  });
+  await prisma.customerBranchScope.upsert({
+    where: { customerId_branchId: { customerId: customer2.id, branchId: dest.id } },
+    update: { isAllowed: true },
+    create: { customerId: customer2.id, branchId: dest.id, isAllowed: true },
+  });
+
+  let trackSeq = 0;
+  const trackCode = () => `WU${(1000 + trackSeq++).toString(36).toUpperCase().padStart(4, "0")}`;
+  async function seedPackage(input: {
+    customerId: string;
+    status: "RECEIVED_ORIGIN" | "IN_TRANSIT" | "IN_CUSTOMS" | "AVAILABLE" | "DELIVERED";
+    mode: "AIR" | "SEA";
+    weightLb: number;
+    branchId: string | null;
+    originTracking: string;
+  }) {
+    const existing = await prisma.package.findUnique({ where: { originTrackingNumber: input.originTracking } });
+    if (existing) return;
+    const price = input.mode === "AIR" ? 6 : 2.5;
+    const subtotal = Math.max(input.weightLb * price, input.mode === "AIR" ? 5 : 0);
+    const now = new Date();
+    const pkg = await prisma.package.create({
+      data: {
+        trackingCode: trackCode(),
+        customerId: input.customerId,
+        status: input.status,
+        mode: input.mode,
+        originBranchId: origin.id,
+        originCarrier: "SEED",
+        originTrackingNumber: input.originTracking,
+        weightOriginLb: input.weightLb,
+        chargeableLb: input.weightLb,
+        volumetricLb: 0,
+        weightSource: "MANUAL",
+        quoteRateCardId: null,
+        quotePricePerLb: price,
+        quoteSubtotal: subtotal,
+        quoteCurrency: "USD",
+        receivedAt: new Date(now.getTime() - 6 * 86_400_000),
+        receivedByUserId: masterUser.id,
+        currentBranchId: input.branchId,
+        availableAt: input.status === "AVAILABLE" || input.status === "DELIVERED" ? new Date(now.getTime() - 86_400_000) : null,
+        deliveredAt: input.status === "DELIVERED" ? new Date(now.getTime() - 3_600_000) : null,
+      },
+    });
+    await prisma.cargoTimelineEntry.create({
+      data: { packageId: pkg.id, seq: 1, eventType: "PACKAGE_RECEIVED", payloadJson: { seed: true }, actorUserId: masterUser.id },
+    });
+    if (input.status !== "RECEIVED_ORIGIN") {
+      await prisma.cargoTimelineEntry.create({
+        data: { packageId: pkg.id, seq: 2, eventType: "STATUS_CHANGED", payloadJson: { to: input.status, seed: true }, actorUserId: masterUser.id },
+      });
+    }
+  }
+
+  await seedPackage({ customerId: customer.id, status: "RECEIVED_ORIGIN", mode: "AIR", weightLb: 3, branchId: origin.id, originTracking: "SEED-A-001" });
+  await seedPackage({ customerId: customer.id, status: "IN_TRANSIT", mode: "SEA", weightLb: 18, branchId: null, originTracking: "SEED-A-002" });
+  await seedPackage({ customerId: customer.id, status: "AVAILABLE", mode: "AIR", weightLb: 4, branchId: dest.id, originTracking: "SEED-A-003" });
+  await seedPackage({ customerId: customer.id, status: "AVAILABLE", mode: "AIR", weightLb: 1.5, branchId: dest.id, originTracking: "SEED-A-004" });
+  await seedPackage({ customerId: customer.id, status: "DELIVERED", mode: "SEA", weightLb: 22, branchId: dest.id, originTracking: "SEED-A-005" });
+  await seedPackage({ customerId: customer2.id, status: "IN_CUSTOMS", mode: "AIR", weightLb: 7, branchId: null, originTracking: "SEED-B-001" });
+  await seedPackage({ customerId: customer2.id, status: "AVAILABLE", mode: "AIR", weightLb: 2.2, branchId: dest.id, originTracking: "SEED-B-002" });
+  console.log("  ✔ Cliente NIC-00002 + 7 paquetes demo por el recorrido");
+
   await prisma.auditLog.create({
     data: {
       actorUserId: masterUser.id,
@@ -278,7 +355,7 @@ async function main(): Promise<void> {
   console.log(`   Master:        ${MASTER_USERNAME} / ${MASTER_PASSWORD}`);
   console.log(`   Demo staff:    mostrador, cajero, bodega-origen, bodega-destino, repartidor, admin-agencia, contador`);
   console.log(`   Demo password: ${DEMO_PASSWORD}`);
-  console.log(`   Cliente demo:  NIC-00001 (portal: cliente@example.com / ${DEMO_PASSWORD})`);
+  console.log(`   Cliente demo:  NIC-00001 y NIC-00002 (portal: código de un solo uso → CustomerNotification)`);
   console.log("   ──────────────────────────────────────────────");
 }
 
