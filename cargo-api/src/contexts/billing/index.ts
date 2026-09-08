@@ -1,14 +1,16 @@
 /**
- * Contexto: billing  (confianza: Baja)
- *
- * Cobro y conciliación. §7: modelo financiero definitivo, posterior. Depende del bloqueante #3 (¿se embarca sin pagar?).
- *
- * API PÚBLICA del contexto. Lo único importable desde otros contextos o desde
- * src/app/**. Nada de src/contexts/billing/{domain,application,infrastructure,interfaces}
- * se importa directamente desde afuera (enforced en CI).
- *
- * Vacío a propósito: el modelado del dominio no arranca hasta cerrar el §12
- * paso 3 (ver docs/ARQUITECTURA-HARBOR.md).
+ * Contexto `billing` — API pública. Factura de FLETE leída del snapshot de
+ * cotización (PASO U.3). La línea de factura apunta a paquetes, no a productos.
  */
+export {
+  buildFreightInvoice,
+  type FreightInvoice,
+  type FreightQuoteSnapshot,
+  type InvoiceLine,
+} from "@/contexts/billing/domain/freight-invoice";
 
-export {};
+export {
+  billFreightForPickup,
+  collectFreightPayment,
+  getFreightInvoice,
+} from "@/contexts/billing/infrastructure/billing-service";
