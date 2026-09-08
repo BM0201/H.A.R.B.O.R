@@ -37,6 +37,15 @@ function isCronPath(pathname: string): boolean {
   return pathname.startsWith("/api/cron/") || pathname.startsWith("/api/system/cron/");
 }
 
+/**
+ * PASO U — el portal del cliente (`/api/portal/**`) NO usa la sesión de staff.
+ * Cada route handler valida su propia sesión de portal (`getPortalSession`) o es
+ * público (solicitud/verificación de código). El rate-limit por IP igual aplica.
+ */
+function isPortalPath(pathname: string): boolean {
+  return pathname.startsWith("/api/portal/");
+}
+
 function isRequestBodyTooLarge(request: NextRequest): boolean {
   if (SAFE_METHODS.has(request.method.toUpperCase())) return false;
 
@@ -81,8 +90,8 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  // Public, unauthenticated API endpoints.
-  if (PUBLIC_API_PATHS.has(pathname) || isCronPath(pathname)) {
+  // Public, unauthenticated API endpoints (portal incluido — auth propia).
+  if (PUBLIC_API_PATHS.has(pathname) || isCronPath(pathname) || isPortalPath(pathname)) {
     // Rate limit por IP para públicos (login usa su propio limiter en BD).
     const publicLimit = await enforceApiRateLimit({
       pathname,

@@ -88,14 +88,18 @@ export function middleware(request: NextRequest) {
   const hasSession = request.cookies.has(SESSION_COOKIE);
   const hasCustomerSession = request.cookies.has(CUSTOMER_SESSION_COOKIE);
 
-  // ── Portal del cliente externo (Fase 2) ─────────────────────────────
+  // ── Portal del cliente externo (PASO U) ─────────────────────────────
   // Auth totalmente separada de la del staff: cookie distinta, gate distinto.
   // Una sesión de staff NUNCA autoriza `/portal/**` y viceversa.
-  if (pathname.startsWith("/portal")) {
-    if (!hasCustomerSession && pathname !== "/portal/login") {
-      return NextResponse.redirect(new URL("/portal/login", request.url));
+  // Públicas: ingreso por casillero, verificación de código, canje de enlace.
+  const PORTAL_PUBLIC = new Set(["/portal", "/portal/verificar", "/portal/entrar"]);
+  if (pathname === "/portal" || pathname.startsWith("/portal/")) {
+    if (!hasCustomerSession && !PORTAL_PUBLIC.has(pathname)) {
+      return NextResponse.redirect(new URL("/portal", request.url));
     }
-    // El resto del portal se implementa en Fase 2; por ahora solo el ruteo.
+    if (hasCustomerSession && (pathname === "/portal" || pathname === "/portal/verificar")) {
+      return NextResponse.redirect(new URL("/portal/casillero", request.url));
+    }
   }
 
   // Gate /app/* on cookie presence (a stale cookie will be cleared by the
